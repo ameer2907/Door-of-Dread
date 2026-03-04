@@ -6,12 +6,25 @@ class AudioManager {
   private heartbeatInterval: number | null = null;
   private initialized = false;
 
+  // Music system
+  private musicGain: GainNode | null = null;
+  private musicOscillators: OscillatorNode[] = [];
+  private musicBufferSources: AudioBufferSourceNode[] = [];
+  private musicInterval: number | null = null;
+  private musicEnabled = true;
+  private musicPlaying = false;
+
   init() {
     if (this.initialized) return;
     this.ctx = new AudioContext();
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.5;
     this.masterGain.connect(this.ctx.destination);
+
+    this.musicGain = this.ctx.createGain();
+    this.musicGain.gain.value = 0.25;
+    this.musicGain.connect(this.masterGain);
+
     this.initialized = true;
   }
 
@@ -57,6 +70,142 @@ class AudioManager {
     source.start();
   }
 
+  // --- Horror Music System ---
+  startMusic() {
+    if (!this.ctx || !this.musicGain || this.musicPlaying) return;
+    this.musicPlaying = true;
+    this.musicEnabled = true;
+    this._startDrone();
+    this._startPianoLoop();
+  }
+
+  private _startDrone() {
+    if (!this.ctx || !this.musicGain) return;
+
+    // Deep drone - layered detuned sines
+    const freqs = [38, 40, 57]; // low rumble
+    freqs.forEach(f => {
+      const osc = this.ctx!.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      const g = this.ctx!.createGain();
+      g.gain.value = 0.08;
+      // Slow LFO on volume for breathing feel
+      const lfo = this.ctx!.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.05 + Math.random() * 0.05;
+      const lfoGain = this.ctx!.createGain();
+      lfoGain.gain.value = 0.03;
+      lfo.connect(lfoGain);
+      lfoGain.connect(g.gain);
+      lfo.start();
+
+      osc.connect(g);
+      g.connect(this.musicGain!);
+      osc.start();
+      this.musicOscillators.push(osc);
+    });
+
+    // Filtered noise layer for distant wind
+    const bufLen = this.ctx.sampleRate * 4;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1);
+    const playNoiseLoop = () => {
+      if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      const filt = this.ctx.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = 300;
+      const g = this.ctx.createGain();
+      g.gain.value = 0.04;
+      g.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.04, this.ctx.currentTime + 1);
+      g.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 3.8);
+      src.connect(filt);
+      filt.connect(g);
+      g.connect(this.musicGain!);
+      src.start();
+      this.musicBufferSources.push(src);
+    };
+    playNoiseLoop();
+    this.musicInterval = window.setInterval(playNoiseLoop, 4000);
+  }
+
+  private _startPianoLoop() {
+    if (!this.ctx || !this.musicGain) return;
+    // Simulate sparse piano notes with sine + fast decay
+    const notes = [130.81, 146.83, 155.56, 174.61, 196, 220, 261.63]; // C3-C4 range
+    const playNote = () => {
+      if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
+      const freq = notes[Math.floor(Math.random() * notes.length)];
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      // Add slight detune for eeriness
+      osc.detune.value = (Math.random() - 0.5) * 20;
+      const g = this.ctx.createGain();
+      g.gain.value = 0.06;
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
+      // Reverb-like echo via delayed copy
+      const delay = this.ctx.createDelay();
+      delay.delayTime.value = 0.3;
+      const dGain = this.ctx.createGain();
+      dGain.gain.value = 0.03;
+
+      osc.connect(g);
+      g.connect(this.musicGain!);
+      g.connect(delay);
+      delay.connect(dGain);
+      dGain.connect(this.musicGain!);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 3.5);
+    };
+
+    // Play a note every 3-6 seconds randomly
+    const scheduleNext = () => {
+      if (!this.musicPlaying) return;
+      const delay = 3000 + Math.random() * 3000;
+      setTimeout(() => {
+        playNote();
+        scheduleNext();
+      }, delay);
+    };
+    // Play first note after a short delay
+    setTimeout(() => {
+      playNote();
+      scheduleNext();
+    }, 1500);
+  }
+
+  stopMusic() {
+    this.musicPlaying = false;
+    this.musicOscillators.forEach(o => { try { o.stop(); } catch {} });
+    this.musicOscillators = [];
+    this.musicBufferSources.forEach(s => { try { s.stop(); } catch {} });
+    this.musicBufferSources = [];
+    if (this.musicInterval) {
+      clearInterval(this.musicInterval);
+      this.musicInterval = null;
+    }
+  }
+
+  toggleMusic(): boolean {
+    this.musicEnabled = !this.musicEnabled;
+    if (this.musicEnabled) {
+      this.startMusic();
+    } else {
+      this.stopMusic();
+    }
+    return this.musicEnabled;
+  }
+
+  isMusicEnabled() {
+    return this.musicEnabled;
+  }
+
+  // --- Existing SFX ---
   startAmbient() {
     if (!this.ctx || !this.masterGain || this.ambientOsc) return;
     this.ambientOsc = this.ctx.createOscillator();
@@ -133,6 +282,7 @@ class AudioManager {
   stopAll() {
     this.stopAmbient();
     this.stopHeartbeat();
+    this.stopMusic();
   }
 }
 

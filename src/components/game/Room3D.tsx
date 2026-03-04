@@ -179,6 +179,13 @@ export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoo
       <ambientLight color={config.ambientColor} intensity={config.ambientIntensity} />
       <RoomLight config={config} flickering={flickering} />
 
+      {/* Fill lights for visibility */}
+      <pointLight position={[-4, 1, 0]} color={config.pointLightColor} intensity={0.4} distance={10} />
+      <pointLight position={[4, 1, 0]} color={config.pointLightColor} intensity={0.4} distance={10} />
+      <pointLight position={[0, 0.3, 0]} color="#ffddaa" intensity={0.2} distance={8} />
+      {/* Hemisphere light for general fill */}
+      <hemisphereLight args={['#444444', '#111111', 0.4]} />
+
       {/* Floor */}
       <WallPlane position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} size={[10, 10]} color={config.floorColor} />
       {/* Ceiling */}

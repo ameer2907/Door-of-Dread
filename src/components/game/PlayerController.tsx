@@ -80,7 +80,9 @@ export default function PlayerController() {
     // Clamp to room
     camera.position.x = THREE.MathUtils.clamp(camera.position.x, -4.5, 4.5);
     camera.position.z = THREE.MathUtils.clamp(camera.position.z, -4.2, 4.5);
-    camera.position.y = 1.7;
+    // Subtle breathing camera movement
+    const breathe = Math.sin(state.clock.elapsedTime * 1.2) * 0.008;
+    camera.position.y = 1.7 + breathe;
 
     // Raycast for door targeting
     raycaster.current.setFromCamera(center.current, camera);
