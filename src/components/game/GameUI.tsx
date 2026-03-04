@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
+import { audioManager } from '@/game/audio';
 
 function Crosshair() {
   return (
@@ -27,18 +29,16 @@ function InteractPrompt() {
 
 function FearOverlay() {
   const { fear } = useGame();
-  if (fear <= 0) return null;
-
   const intensity = fear / 100;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-30">
-      {/* Vignette */}
+      {/* Permanent subtle vignette for atmosphere */}
       <div
         className="absolute inset-0"
         style={{
-          boxShadow: `inset 0 0 ${80 + intensity * 120}px rgba(0, 0, 0, ${0.3 + intensity * 0.5}),
-                      inset 0 0 ${40 + intensity * 80}px rgba(80, 0, 0, ${intensity * 0.4})`,
+          boxShadow: `inset 0 0 ${100 + intensity * 120}px rgba(0, 0, 0, ${0.4 + intensity * 0.4}),
+                      inset 0 0 ${50 + intensity * 80}px rgba(80, 0, 0, ${0.05 + intensity * 0.4})`,
         }}
       />
 
@@ -292,6 +292,29 @@ function TransitionOverlay() {
   );
 }
 
+function MusicToggle() {
+  const { phase } = useGame();
+  const [musicOn, setMusicOn] = useState(true);
+
+  if (phase !== 'playing') return null;
+
+  const toggle = () => {
+    const enabled = audioManager.toggleMusic();
+    setMusicOn(enabled);
+  };
+
+  return (
+    <button
+      onClick={toggle}
+      className="fixed top-14 right-4 z-20 px-3 py-1.5 rounded bg-secondary/80 hover:bg-secondary
+                 text-xs text-muted-foreground hover:text-foreground transition-colors font-body
+                 border border-border/50 backdrop-blur-sm"
+    >
+      ♪ {musicOn ? 'ON' : 'OFF'}
+    </button>
+  );
+}
+
 export default function GameUI() {
   return (
     <>
@@ -300,6 +323,7 @@ export default function GameUI() {
       <FearOverlay />
       <FlickerOverlay />
       <HUD />
+      <MusicToggle />
       <PauseMenu />
       <GameOverScreen />
       <WinScreen />
