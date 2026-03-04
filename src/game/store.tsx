@@ -131,6 +131,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         } else if (roomCfg.ghostLevel > 0) {
           st2.ghostVisible = true;
           st2.ghostState = roomCfg.ghostLevel >= 2 ? 'close' : 'watching';
+          audioManager.playGhostSting();
           update();
 
           if (st2.fear > 50) audioManager.startHeartbeat(800 - st2.fear * 4);

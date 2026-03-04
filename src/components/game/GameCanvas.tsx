@@ -16,7 +16,7 @@ export default function GameCanvas() {
       <Canvas
         shadows
         camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.7, 3] }}
-        gl={{ antialias: true, toneMapping: 3, toneMappingExposure: 1.6 }}
+        gl={{ antialias: true, toneMapping: 3, toneMappingExposure: 1.9 }}
       >
         <fog attach="fog" args={[config.fogColor, config.fogNear, config.fogFar]} />
 

@@ -180,11 +180,15 @@ export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoo
       <RoomLight config={config} flickering={flickering} />
 
       {/* Fill lights for visibility */}
-      <pointLight position={[-4, 1, 0]} color={config.pointLightColor} intensity={0.4} distance={10} />
-      <pointLight position={[4, 1, 0]} color={config.pointLightColor} intensity={0.4} distance={10} />
-      <pointLight position={[0, 0.3, 0]} color="#ffddaa" intensity={0.2} distance={8} />
+      <pointLight position={[-4, 1.5, 0]} color={config.pointLightColor} intensity={0.6} distance={12} />
+      <pointLight position={[4, 1.5, 0]} color={config.pointLightColor} intensity={0.6} distance={12} />
+      <pointLight position={[0, 0.3, 0]} color="#ffddaa" intensity={0.35} distance={10} />
+      {/* Warm wall-wash lights near floor */}
+      <pointLight position={[-3, 0.5, -3]} color="#ffcc88" intensity={0.3} distance={6} />
+      <pointLight position={[3, 0.5, -3]} color="#ffcc88" intensity={0.3} distance={6} />
+      <pointLight position={[0, 0.5, 3]} color="#ffcc88" intensity={0.2} distance={6} />
       {/* Hemisphere light for general fill */}
-      <hemisphereLight args={['#444444', '#111111', 0.4]} />
+      <hemisphereLight args={['#555555', '#1a1a1a', 0.6]} />
 
       {/* Floor */}
       <WallPlane position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} size={[10, 10]} color={config.floorColor} />
