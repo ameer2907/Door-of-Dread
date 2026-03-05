@@ -16,8 +16,8 @@ export default function PlayerController() {
   const targetedRef = useRef<number | null>(null);
   const prevTargeted = useRef<number | null>(null);
   const fearTimer = useRef(0);
+  const shakeOffset = useRef({ x: 0, y: 0 });
 
-  // Reset camera position on room change
   const currentRoom = getState().currentRoom;
   useEffect(() => {
     camera.position.set(0, 1.7, 3);
@@ -44,7 +44,6 @@ export default function PlayerController() {
     };
   }, [handleKeyDown, handleKeyUp]);
 
-  // Detect pointer lock changes
   useEffect(() => {
     const onChange = () => {
       const locked = !!document.pointerLockElement;
@@ -80,9 +79,26 @@ export default function PlayerController() {
     // Clamp to room
     camera.position.x = THREE.MathUtils.clamp(camera.position.x, -4.5, 4.5);
     camera.position.z = THREE.MathUtils.clamp(camera.position.z, -4.2, 4.5);
-    // Subtle breathing camera movement
+
+    // Breathing + camera shake during ghost attack
     const breathe = Math.sin(state.clock.elapsedTime * 1.2) * 0.008;
-    camera.position.y = 1.7 + breathe;
+    
+    if (gs.ghostState === 'attack') {
+      // Intense camera shake
+      const shakeIntensity = 0.06;
+      shakeOffset.current.x = (Math.random() - 0.5) * shakeIntensity;
+      shakeOffset.current.y = (Math.random() - 0.5) * shakeIntensity;
+      camera.position.y = 1.7 + shakeOffset.current.y;
+      camera.position.x += shakeOffset.current.x;
+    } else if (gs.ghostState === 'close') {
+      // Mild shake
+      const mild = 0.015;
+      shakeOffset.current.x = (Math.random() - 0.5) * mild;
+      shakeOffset.current.y = (Math.random() - 0.5) * mild;
+      camera.position.y = 1.7 + breathe + shakeOffset.current.y;
+    } else {
+      camera.position.y = 1.7 + breathe;
+    }
 
     // Raycast for door targeting
     raycaster.current.setFromCamera(center.current, camera);
