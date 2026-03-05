@@ -23,11 +23,11 @@ export default function MainMenu() {
         <div>
           <h1 className="font-horror text-7xl md:text-9xl text-primary tracking-widest drop-shadow-lg"
               style={{ textShadow: '0 0 40px hsl(0, 65%, 42%), 0 0 80px hsl(0, 65%, 30%)' }}>
-            THE WRONG
+            DOOR OF
           </h1>
           <h1 className="font-horror text-8xl md:text-[10rem] text-foreground tracking-[0.3em] -mt-2"
               style={{ textShadow: '0 0 20px rgba(255,255,255,0.15)' }}>
-            DOOR
+            DREAD
           </h1>
         </div>
 
