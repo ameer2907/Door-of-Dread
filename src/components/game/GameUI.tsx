@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
 import { audioManager } from '@/game/audio';
+import ghostNunImg from '@/assets/ghost-nun.jpg';
 
 function Crosshair() {
   return (
@@ -68,26 +69,97 @@ function FlickerOverlay() {
 
 function GhostAttackOverlay() {
   const { ghostState, ghostVisible } = useGame();
+  const [scarePhase, setScarePhase] = useState(0);
+
+  useEffect(() => {
+    if (ghostState === 'attack' && ghostVisible) {
+      setScarePhase(1);
+      const t1 = setTimeout(() => setScarePhase(2), 400);
+      const t2 = setTimeout(() => setScarePhase(3), 1200);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    } else {
+      setScarePhase(0);
+    }
+  }, [ghostState, ghostVisible]);
+
   if (!ghostVisible || (ghostState !== 'attack' && ghostState !== 'close')) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-35">
+    <div className="fixed inset-0 pointer-events-none z-[35]">
       {/* Screen darkening */}
       <div
-        className="absolute inset-0 transition-opacity duration-500"
+        className="absolute inset-0 transition-opacity duration-300"
         style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
           opacity: ghostState === 'attack' ? 1 : 0.3,
         }}
       />
-      {/* Red edge pulse during attack */}
+
       {ghostState === 'attack' && (
+        <>
+          {/* Ghost nun image - scales up rapidly toward player */}
+          <div
+            className="absolute inset-0 flex items-center justify-center overflow-hidden"
+            style={{
+              animation: scarePhase >= 1 ? 'ghost-rush 2.5s ease-in forwards' : 'none',
+              opacity: scarePhase >= 1 ? 1 : 0,
+            }}
+          >
+            <img
+              src={ghostNunImg}
+              alt=""
+              className="min-w-full min-h-full object-cover"
+              style={{
+                filter: `brightness(${scarePhase >= 2 ? 1.4 : 0.7}) contrast(1.5) saturate(0.2)`,
+              }}
+            />
+          </div>
+
+          {/* Blood red flashes */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(circle, transparent 10%, rgba(120, 0, 0, 0.9) 100%)',
+              animation: 'blood-pulse 0.12s infinite alternate',
+              opacity: scarePhase >= 2 ? 0.8 : 0,
+            }}
+          />
+
+          {/* Static glitch lines */}
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ opacity: scarePhase >= 1 ? 0.5 : 0, mixBlendMode: 'overlay' }}
+          >
+            {Array.from({ length: 25 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-full"
+                style={{
+                  height: `${Math.random() * 4 + 1}px`,
+                  top: `${Math.random() * 100}%`,
+                  backgroundColor: `rgba(255,255,255,${0.1 + Math.random() * 0.3})`,
+                  animation: `glitch-line ${0.04 + Math.random() * 0.08}s infinite`,
+                  animationDelay: `${Math.random() * 0.3}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Death vignette */}
+          <div
+            className="absolute inset-0"
+            style={{
+              boxShadow: 'inset 0 0 200px rgba(100, 0, 0, 0.9), inset 0 0 80px rgba(0, 0, 0, 0.95)',
+              animation: 'pulse 0.2s infinite alternate',
+            }}
+          />
+        </>
+      )}
+
+      {ghostState === 'close' && (
         <div
           className="absolute inset-0"
-          style={{
-            boxShadow: 'inset 0 0 150px rgba(180, 0, 0, 0.6), inset 0 0 60px rgba(100, 0, 0, 0.8)',
-            animation: 'pulse 0.3s infinite alternate',
-          }}
+          style={{ boxShadow: 'inset 0 0 100px rgba(0, 0, 0, 0.6)' }}
         />
       )}
     </div>
@@ -192,37 +264,83 @@ function PauseMenu() {
 
 function GameOverScreen() {
   const { phase, restart, setPhase } = useGame();
+  const [showUI, setShowUI] = useState(false);
+  const [fadeGhost, setFadeGhost] = useState(true);
+
+  useEffect(() => {
+    if (phase === 'gameover') {
+      setFadeGhost(true);
+      setShowUI(false);
+      const t1 = setTimeout(() => setFadeGhost(false), 2000);
+      const t2 = setTimeout(() => setShowUI(true), 2800);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+  }, [phase]);
+
   if (phase !== 'gameover') return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black">
-      <div className="text-center space-y-6 animate-fade-in">
-        <h2
-          className="font-horror text-7xl tracking-widest"
-          style={{ color: 'hsl(0, 70%, 40%)', textShadow: '0 0 30px rgba(180, 0, 0, 0.6)' }}
-        >
-          YOU WERE CAUGHT
-        </h2>
-        <p className="text-muted-foreground font-body text-lg">
-          The nun dragged you into the darkness...
-        </p>
-        <div className="space-y-3 pt-6">
-          <button
-            onClick={restart}
-            className="block w-48 mx-auto py-3 bg-primary text-primary-foreground
-                       rounded-md transition-colors hover:opacity-80 font-body"
-          >
-            Try Again
-          </button>
-          <button
-            onClick={() => setPhase('menu')}
-            className="block w-48 mx-auto py-3 bg-secondary text-foreground
-                       rounded-md transition-colors hover:bg-muted font-body"
-          >
-            Main Menu
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 bg-black">
+      {/* Ghost face lingering after death */}
+      <div
+        className="absolute inset-0 flex items-center justify-center transition-opacity duration-1000"
+        style={{ opacity: fadeGhost ? 1 : 0 }}
+      >
+        <img
+          src={ghostNunImg}
+          alt=""
+          className="w-full h-full object-cover"
+          style={{
+            filter: 'brightness(0.4) contrast(1.6) saturate(0.1)',
+            animation: 'death-shake 0.1s infinite',
+          }}
+        />
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(circle, transparent 30%, rgba(80, 0, 0, 0.9) 100%)',
+        }} />
       </div>
+
+      {/* Death message */}
+      {showUI && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center space-y-4 animate-fade-in relative z-10">
+            <p className="font-horror text-2xl tracking-[0.5em] text-red-400/80 uppercase"
+               style={{ animation: 'flicker-text 3s infinite' }}>
+              You didn't survive
+            </p>
+            <h2
+              className="font-horror text-8xl md:text-9xl tracking-widest"
+              style={{
+                color: 'hsl(0, 80%, 35%)',
+                textShadow: '0 0 40px rgba(200, 0, 0, 0.8), 0 0 80px rgba(150, 0, 0, 0.4), 0 4px 20px rgba(0,0,0,0.9)',
+                animation: 'death-text-pulse 2s ease-in-out infinite',
+              }}
+            >
+              DEAD
+            </h2>
+            <p className="text-muted-foreground/60 font-body text-sm tracking-widest pt-2">
+              The nun claimed your soul...
+            </p>
+            <div className="space-y-3 pt-8">
+              <button
+                onClick={restart}
+                className="block w-56 mx-auto py-3 border-2 border-red-800/60 bg-red-950/30
+                           text-red-300 rounded transition-all hover:bg-red-900/50 hover:border-red-600
+                           hover:text-red-200 font-horror text-xl tracking-wider"
+              >
+                FACE IT AGAIN
+              </button>
+              <button
+                onClick={() => setPhase('menu')}
+                className="block w-56 mx-auto py-2.5 bg-transparent text-muted-foreground/50
+                           rounded transition-colors hover:text-muted-foreground font-body text-sm"
+              >
+                Escape to Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -242,7 +360,7 @@ function WinScreen() {
           The whispers fade behind you... for now.
         </p>
         <div className="pt-6 space-y-2 text-muted-foreground text-xs font-body">
-          <p>THE WRONG DOOR</p>
+          <p>DOOR OF DREAD</p>
           <p>A Horror Experience</p>
           <p className="pt-2">Built with React Three Fiber</p>
         </div>
