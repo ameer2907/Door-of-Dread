@@ -66,6 +66,34 @@ function FlickerOverlay() {
   );
 }
 
+function GhostAttackOverlay() {
+  const { ghostState, ghostVisible } = useGame();
+  if (!ghostVisible || (ghostState !== 'attack' && ghostState !== 'close')) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-35">
+      {/* Screen darkening */}
+      <div
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          opacity: ghostState === 'attack' ? 1 : 0.3,
+        }}
+      />
+      {/* Red edge pulse during attack */}
+      {ghostState === 'attack' && (
+        <div
+          className="absolute inset-0"
+          style={{
+            boxShadow: 'inset 0 0 150px rgba(180, 0, 0, 0.6), inset 0 0 60px rgba(100, 0, 0, 0.8)',
+            animation: 'pulse 0.3s infinite alternate',
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 function HUD() {
   const { currentRoom, fear, wrongCount, pointerLocked, phase } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
@@ -167,11 +195,18 @@ function GameOverScreen() {
   if (phase !== 'gameover') return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-background/90">
-      <div className="text-center space-y-6">
-        <h2 className="font-horror text-7xl text-primary tracking-widest">GAME OVER</h2>
-        <p className="text-muted-foreground font-body">The darkness consumed you.</p>
-        <div className="space-y-3 pt-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black">
+      <div className="text-center space-y-6 animate-fade-in">
+        <h2
+          className="font-horror text-7xl tracking-widest"
+          style={{ color: 'hsl(0, 70%, 40%)', textShadow: '0 0 30px rgba(180, 0, 0, 0.6)' }}
+        >
+          YOU WERE CAUGHT
+        </h2>
+        <p className="text-muted-foreground font-body text-lg">
+          The nun dragged you into the darkness...
+        </p>
+        <div className="space-y-3 pt-6">
           <button
             onClick={restart}
             className="block w-48 mx-auto py-3 bg-primary text-primary-foreground
@@ -322,6 +357,7 @@ export default function GameUI() {
       <InteractPrompt />
       <FearOverlay />
       <FlickerOverlay />
+      <GhostAttackOverlay />
       <HUD />
       <MusicToggle />
       <PauseMenu />

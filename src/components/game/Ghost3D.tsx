@@ -9,6 +9,184 @@ interface Props {
   roomIndex: number;
 }
 
+function GhostBody({ opacity }: { opacity: number }) {
+  return (
+    <>
+      {/* Tall robed body */}
+      <mesh position={[0, 1.4, 0]} castShadow>
+        <coneGeometry args={[0.9, 3.2, 8]} />
+        <meshStandardMaterial color="#0a0a0a" transparent opacity={opacity} roughness={1} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Inner robe */}
+      <mesh position={[0, 1.2, 0.06]}>
+        <coneGeometry args={[0.65, 2.8, 6]} />
+        <meshStandardMaterial color="#080808" transparent opacity={opacity * 0.8} />
+      </mesh>
+    </>
+  );
+}
+
+function GhostCloth({ opacity, clothOffset }: { opacity: number; clothOffset: number }) {
+  return (
+    <>
+      {[-0.35, 0.35, -0.18, 0.18, 0].map((x, i) => (
+        <mesh
+          key={`cloth-${i}`}
+          position={[
+            x + Math.sin(clothOffset + i * 1.5) * 0.04,
+            0.1,
+            0.1 + Math.cos(clothOffset + i) * 0.03
+          ]}
+        >
+          <boxGeometry args={[0.1, 0.7, 0.02]} />
+          <meshStandardMaterial color="#0a0a0a" transparent opacity={opacity * 0.6} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+function GhostHead({ opacity, state }: { opacity: number; state: GhostState }) {
+  const isAttacking = state === 'attack';
+  
+  return (
+    <group>
+      {/* Pale blue-white head - Valak style */}
+      <mesh position={[0, 2.95, 0]}>
+        <sphereGeometry args={[0.28, 16, 16]} />
+        <meshStandardMaterial
+          color="#c8ccd8"
+          emissive="#0a0a20"
+          emissiveIntensity={0.5}
+          roughness={0.85}
+          transparent
+          opacity={opacity}
+        />
+      </mesh>
+
+      {/* Dark circles around eyes */}
+      {[-0.1, 0.1].map((x, i) => (
+        <mesh key={`ring-${i}`} position={[x, 2.98, 0.18]}>
+          <sphereGeometry args={[0.07, 12, 12]} />
+          <meshStandardMaterial color="#1a1020" transparent opacity={opacity * 0.8} />
+        </mesh>
+      ))}
+
+      {/* Deep hollow eye sockets */}
+      {[-0.1, 0.1].map((x, i) => (
+        <group key={`eye-${i}`} position={[x, 2.98, 0.22]}>
+          <mesh>
+            <sphereGeometry args={[0.05, 10, 10]} />
+            <meshStandardMaterial color="#000000" />
+          </mesh>
+          {/* Glowing pupils */}
+          <mesh position={[0, 0, 0.015]}>
+            <sphereGeometry args={[0.022, 8, 8]} />
+            <meshStandardMaterial
+              color={isAttacking ? '#ffff00' : '#ff4400'}
+              emissive={isAttacking ? '#ffff00' : '#ff2200'}
+              emissiveIntensity={isAttacking ? 12 : 4}
+            />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Sunken cheeks */}
+      {[-0.14, 0.14].map((x, i) => (
+        <mesh key={`cheek-${i}`} position={[x, 2.86, 0.14]}>
+          <sphereGeometry args={[0.065, 8, 8]} />
+          <meshStandardMaterial color="#1a1018" transparent opacity={opacity * 0.6} />
+        </mesh>
+      ))}
+
+      {/* Wide gaping mouth with teeth */}
+      <mesh position={[0, 2.78, 0.2]}>
+        <sphereGeometry args={[0.08, 10, 8]} />
+        <meshStandardMaterial color="#000000" />
+      </mesh>
+      {/* Upper teeth */}
+      {[-0.04, -0.015, 0.015, 0.04].map((x, i) => (
+        <mesh key={`tooth-${i}`} position={[x, 2.8, 0.25]}>
+          <coneGeometry args={[0.008, 0.03, 4]} />
+          <meshStandardMaterial color="#d8d0b8" emissive="#1a1a0a" emissiveIntensity={0.3} />
+        </mesh>
+      ))}
+
+      {/* Dark veins on face */}
+      {[[-0.17, 2.92, 0.15], [0.17, 2.94, 0.14], [-0.05, 2.82, 0.22], [0.06, 2.83, 0.21]].map((pos, i) => (
+        <mesh key={`vein-${i}`} position={pos as [number, number, number]}>
+          <boxGeometry args={[0.015, 0.06, 0.005]} />
+          <meshStandardMaterial color="#3a2030" transparent opacity={opacity * 0.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function GhostVeil({ opacity }: { opacity: number }) {
+  return (
+    <group>
+      {/* Wimple / hood */}
+      <mesh position={[0, 3.3, -0.06]}>
+        <coneGeometry args={[0.38, 0.9, 8]} />
+        <meshStandardMaterial color="#030303" roughness={1} transparent opacity={opacity} />
+      </mesh>
+      {/* Side veil drapes */}
+      {[-0.25, 0.25].map((x, i) => (
+        <mesh key={`veil-${i}`} position={[x, 2.65, -0.06]}>
+          <boxGeometry args={[0.08, 0.8, 0.04]} />
+          <meshStandardMaterial color="#040404" transparent opacity={opacity * 0.85} />
+        </mesh>
+      ))}
+      {/* Front veil edge */}
+      <mesh position={[0, 3.05, 0.15]}>
+        <boxGeometry args={[0.5, 0.05, 0.02]} />
+        <meshStandardMaterial color="#020202" transparent opacity={opacity * 0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+function GhostHands({ state, opacity }: { state: GhostState; opacity: number }) {
+  if (state === 'attack') {
+    return (
+      <>
+        {[-0.55, 0.55].map((x, i) => (
+          <group key={`hand-${i}`} position={[x, 2.0, 0.6]}>
+            <mesh>
+              <sphereGeometry args={[0.065, 8, 8]} />
+              <meshStandardMaterial color="#c0c4d0" emissive="#0a0510" />
+            </mesh>
+            {[0, 1, 2, 3].map((f) => (
+              <mesh key={f} position={[(f - 1.5) * 0.025, 0.1, 0.02]} rotation={[0.4, 0, (f - 1.5) * 0.1]}>
+                <cylinderGeometry args={[0.007, 0.005, 0.1]} />
+                <meshStandardMaterial color="#c0c4d0" />
+              </mesh>
+            ))}
+          </group>
+        ))}
+      </>
+    );
+  }
+  if (state === 'close') {
+    return (
+      <group position={[0.4, 1.9, 0.5]}>
+        <mesh>
+          <sphereGeometry args={[0.06, 8, 8]} />
+          <meshStandardMaterial color="#c0c4d0" transparent opacity={opacity} />
+        </mesh>
+        {[0, 1, 2].map((f) => (
+          <mesh key={f} position={[(f - 1) * 0.025, 0.08, 0.01]} rotation={[0.3, 0, 0]}>
+            <cylinderGeometry args={[0.007, 0.005, 0.08]} />
+            <meshStandardMaterial color="#c0c4d0" transparent opacity={opacity} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+  return null;
+}
+
 export default function Ghost3D({ visible, state, roomIndex }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
@@ -31,20 +209,19 @@ export default function Ghost3D({ visible, state, roomIndex }: Props) {
       return;
     }
 
-    // Fade in effect
-    fadeIn.current = Math.min(fadeIn.current + delta * 2, 1);
-    floatOffset.current += delta * 2;
+    fadeIn.current = Math.min(fadeIn.current + delta * 2.5, 1);
+    floatOffset.current += delta * 1.5;
     clothOffset.current += delta * 3;
 
-    // Slow eerie float
-    groupRef.current.position.y = Math.sin(floatOffset.current) * 0.08;
+    // Eerie slow float
+    groupRef.current.position.y = Math.sin(floatOffset.current) * 0.1;
 
     if (state === 'attack') {
       const dir = new THREE.Vector3()
         .subVectors(camera.position, groupRef.current.position)
         .normalize();
       dir.y = 0;
-      groupRef.current.position.addScaledVector(dir, delta * 3.5);
+      groupRef.current.position.addScaledVector(dir, delta * 4);
       groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
     } else if (state === 'close' || state === 'watching') {
       groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
@@ -54,147 +231,37 @@ export default function Ghost3D({ visible, state, roomIndex }: Props) {
   if (!visible) return null;
 
   const basePos = getBasePosition();
-  const opacity = Math.min(fadeIn.current, state === 'watching' ? 0.6 : 0.95);
+  const opacity = Math.min(fadeIn.current, state === 'watching' ? 0.55 : 0.95);
 
   return (
     <group ref={groupRef} position={basePos}>
-      {/* Tall robed body - nun demon */}
-      <mesh position={[0, 1.4, 0]} castShadow>
-        <coneGeometry args={[0.8, 3.0, 8]} />
-        <meshStandardMaterial
-          color="#050505"
-          transparent
-          opacity={opacity}
-          roughness={1}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      <GhostBody opacity={opacity} />
+      <GhostCloth opacity={opacity} clothOffset={clothOffset.current} />
+      <GhostHead opacity={opacity} state={state} />
+      <GhostVeil opacity={opacity} />
+      <GhostHands state={state} opacity={opacity} />
 
-      {/* Inner robe layer for depth */}
-      <mesh position={[0, 1.2, 0.06]}>
-        <coneGeometry args={[0.6, 2.6, 6]} />
-        <meshStandardMaterial color="#080808" transparent opacity={opacity * 0.8} />
-      </mesh>
+      {/* Eye glow light */}
+      <pointLight
+        position={[0, 3.0, 0.4]}
+        color={state === 'attack' ? '#ffff00' : '#ff2200'}
+        intensity={state === 'attack' ? 0.8 : 0.2}
+        distance={4}
+      />
 
-      {/* Cloth tendrils hanging (simulated movement via multiple pieces) */}
-      {[-0.3, 0.3, -0.15, 0.15].map((x, i) => (
-        <mesh
-          key={`cloth-${i}`}
-          position={[
-            x + Math.sin(clothOffset.current + i * 1.5) * 0.03,
-            0.15,
-            0.1 + Math.cos(clothOffset.current + i) * 0.02
-          ]}
-        >
-          <boxGeometry args={[0.12, 0.6, 0.02]} />
-          <meshStandardMaterial color="#0a0a0a" transparent opacity={opacity * 0.7} />
-        </mesh>
-      ))}
-
-      {/* Pale gaunt head */}
-      <mesh position={[0, 2.95, 0]}>
-        <sphereGeometry args={[0.25, 16, 16]} />
-        <meshStandardMaterial
-          color="#d4c4a8"
-          emissive="#1a0a00"
-          emissiveIntensity={0.4}
-          roughness={0.9}
-          transparent
-          opacity={opacity}
-        />
-      </mesh>
-
-      {/* Sunken cheeks */}
-      {[-0.12, 0.12].map((x, i) => (
-        <mesh key={`cheek-${i}`} position={[x, 2.88, 0.12]}>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshStandardMaterial color="#2a1a10" transparent opacity={opacity * 0.5} />
-        </mesh>
-      ))}
-
-      {/* Veil / wimple */}
-      <mesh position={[0, 3.25, -0.05]}>
-        <coneGeometry args={[0.35, 0.8, 8]} />
-        <meshStandardMaterial color="#030303" roughness={1} transparent opacity={opacity} />
-      </mesh>
-      {/* Side veil drapes */}
-      {[-0.22, 0.22].map((x, i) => (
-        <mesh key={`veil-${i}`} position={[x, 2.7, -0.05]}>
-          <boxGeometry args={[0.08, 0.7, 0.04]} />
-          <meshStandardMaterial color="#040404" transparent opacity={opacity * 0.8} />
-        </mesh>
-      ))}
-
-      {/* Hollow dark eye sockets */}
-      {[-0.08, 0.08].map((x, i) => (
-        <group key={`eye-${i}`} position={[x, 2.98, 0.2]}>
-          {/* Dark socket */}
-          <mesh>
-            <sphereGeometry args={[0.045, 8, 8]} />
-            <meshStandardMaterial color="#000000" />
-          </mesh>
-          {/* Glowing pupil deep inside */}
-          <mesh position={[0, 0, 0.01]}>
-            <sphereGeometry args={[0.018, 8, 8]} />
-            <meshStandardMaterial
-              color={state === 'attack' ? '#ff0000' : '#ff3300'}
-              emissive={state === 'attack' ? '#ff0000' : '#ff2200'}
-              emissiveIntensity={state === 'attack' ? 8 : 3}
-            />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Gaping mouth */}
-      <mesh position={[0, 2.82, 0.2]}>
-        <sphereGeometry args={[0.05, 8, 6]} />
-        <meshStandardMaterial color="#000000" />
-      </mesh>
-
-      {/* Bony reaching hands (attack state) */}
-      {state === 'attack' && (
-        <>
-          {[-0.5, 0.5].map((x, i) => (
-            <group key={`hand-${i}`} position={[x, 2.0, 0.5]}>
-              <mesh>
-                <sphereGeometry args={[0.06, 8, 8]} />
-                <meshStandardMaterial color="#c8b090" emissive="#0a0500" />
-              </mesh>
-              {/* Fingers */}
-              {[0, 1, 2].map((f) => (
-                <mesh key={f} position={[(f - 1) * 0.03, 0.08, 0.02]} rotation={[0.3, 0, 0]}>
-                  <cylinderGeometry args={[0.008, 0.006, 0.08]} />
-                  <meshStandardMaterial color="#c8b090" />
-                </mesh>
-              ))}
-            </group>
-          ))}
-        </>
-      )}
-
-      {/* Close state - one hand reaching */}
-      {state === 'close' && (
-        <group position={[0.35, 1.8, 0.4]}>
-          <mesh>
-            <sphereGeometry args={[0.06, 8, 8]} />
-            <meshStandardMaterial color="#c8b090" transparent opacity={opacity} />
-          </mesh>
-        </group>
-      )}
-
-      {/* Eerie glow */}
+      {/* Eerie body glow */}
       <pointLight
         position={[0, 2.0, 0.5]}
-        color={state === 'attack' ? '#ff0000' : '#2222aa'}
-        intensity={state === 'attack' ? 0.6 : 0.12}
+        color={state === 'attack' ? '#ff0000' : '#1a1a66'}
+        intensity={state === 'attack' ? 0.5 : 0.1}
         distance={5}
       />
 
-      {/* Under-lighting for creepy face illumination */}
+      {/* Under-face creepy illumination */}
       <pointLight
         position={[0, 2.5, 0.3]}
-        color="#331100"
-        intensity={0.15}
+        color="#221100"
+        intensity={0.2}
         distance={2}
       />
     </group>

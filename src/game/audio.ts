@@ -294,20 +294,44 @@ class AudioManager {
     setTimeout(() => this.playNoise(0.08, 0.06), 200);
   }
 
-  // Ghost entrance audio sting
+  // Ghost entrance audio sting - sudden sharp hit
   playGhostSting() {
     if (!this.ctx || !this.masterGain) return;
-    // Short dissonant chord sting
-    this.playTone(130, 0.8, 'sine', 0.15);
-    this.playTone(138, 0.8, 'sine', 0.12); // dissonant interval
-    this.playNoise(0.5, 0.08);
+    // Sharp dissonant hit
+    this.playTone(120, 1.2, 'sine', 0.2);
+    this.playTone(127, 1.2, 'sine', 0.18);
+    this.playTone(240, 0.6, 'triangle', 0.1);
+    this.playNoise(0.3, 0.12);
+    // Delayed reverb-like echo
+    setTimeout(() => {
+      this.playTone(60, 1.5, 'sine', 0.08);
+      this.playNoise(0.8, 0.04);
+    }, 300);
   }
 
   playGhostScream() {
-    if (!this.ctx) return;
-    this.playTone(500, 1.5, 'sawtooth', 0.3);
-    this.playTone(700, 1.2, 'square', 0.2);
-    this.playNoise(1.5, 0.2);
+    if (!this.ctx || !this.masterGain) return;
+    // Layered horror scream: dissonant chord + noise burst + rising pitch
+    this.playTone(180, 2, 'sawtooth', 0.25);
+    this.playTone(190, 2, 'sawtooth', 0.2); // dissonant beating
+    this.playTone(380, 1.5, 'square', 0.12);
+    this.playNoise(1.2, 0.15);
+    // Rising shriek
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 1.5);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 2000;
+    osc.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 2);
   }
 
   playWhisper() {
