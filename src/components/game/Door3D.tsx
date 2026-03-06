@@ -23,14 +23,22 @@ export default function Door3D({ position, index, isCorrect, isOpening, onSelect
     return seed % 3; // 0: light under door, 1: cross mark, 2: scratch marks
   }, [roomIndex, index]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!pivotRef.current) return;
     if (isOpening) {
-      openAngle.current = Math.min(openAngle.current + delta * 2, Math.PI / 2);
+      // Slow creepy door opening - starts slow, then opens wider
+      const targetAngle = Math.PI / 2;
+      const remaining = targetAngle - openAngle.current;
+      // Ease-in: starts very slow, accelerates
+      const speed = 0.3 + (openAngle.current / targetAngle) * 1.5;
+      openAngle.current = Math.min(openAngle.current + delta * speed, targetAngle);
+      // Add subtle creaking wobble during opening
+      const wobble = Math.sin(state.clock.elapsedTime * 8) * 0.005 * (remaining / targetAngle);
+      pivotRef.current.rotation.y = -(openAngle.current + wobble);
     } else {
       openAngle.current = Math.max(openAngle.current - delta * 4, 0);
+      pivotRef.current.rotation.y = -openAngle.current;
     }
-    pivotRef.current.rotation.y = -openAngle.current;
   });
 
   return (
