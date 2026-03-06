@@ -4,6 +4,7 @@ import { PointerLockControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
+import { joystickState } from './JoystickControl';
 
 export default function PlayerController() {
   const { phase, selectDoor, pause, setTargetedDoor, setPointerLocked, getState, increaseFear, setPhase } = useGame();
@@ -107,13 +108,19 @@ export default function PlayerController() {
     
     if (gs.phase !== 'playing') return;
 
-    // Movement
-    const speed = keys.current['ShiftLeft'] ? 6 : 3;
+    // Movement (WASD + Arrow keys + Joystick)
+    const speed = (keys.current['ShiftLeft'] || keys.current['ShiftRight']) ? 6 : 3;
     const dir = moveDir.current.set(0, 0, 0);
-    if (keys.current['KeyW']) dir.z -= 1;
-    if (keys.current['KeyS']) dir.z += 1;
-    if (keys.current['KeyA']) dir.x -= 1;
-    if (keys.current['KeyD']) dir.x += 1;
+    if (keys.current['KeyW'] || keys.current['ArrowUp']) dir.z -= 1;
+    if (keys.current['KeyS'] || keys.current['ArrowDown']) dir.z += 1;
+    if (keys.current['KeyA'] || keys.current['ArrowLeft']) dir.x -= 1;
+    if (keys.current['KeyD'] || keys.current['ArrowRight']) dir.x += 1;
+
+    // Joystick input
+    if (joystickState.active) {
+      dir.x += joystickState.x;
+      dir.z += joystickState.y;
+    }
 
     if (dir.length() > 0) {
       dir.normalize();

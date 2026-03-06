@@ -235,6 +235,115 @@ class AudioManager {
     return this.musicEnabled;
   }
 
+  // --- Title Screen Audio ---
+  playTitleIntro() {
+    if (!this.ctx || !this.masterGain) return;
+    // Deep ominous drone that builds
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 30;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 3);
+    g.gain.linearRampToValueAtTime(0.04, this.ctx.currentTime + 6);
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 8);
+
+    // Eerie high whistle
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(800, this.ctx.currentTime);
+    osc2.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 6);
+    const g2 = this.ctx.createGain();
+    g2.gain.setValueAtTime(0.001, this.ctx.currentTime);
+    g2.gain.linearRampToValueAtTime(0.015, this.ctx.currentTime + 2);
+    g2.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 6);
+    osc2.connect(g2);
+    g2.connect(this.masterGain);
+    osc2.start();
+    osc2.stop(this.ctx.currentTime + 6);
+
+    // Wind noise
+    this.playNoise(5, 0.03);
+  }
+
+  playTitleHit(wordIndex: number) {
+    if (!this.ctx || !this.masterGain) return;
+    // Impact hit that gets heavier with each word
+    const intensity = 0.12 + wordIndex * 0.08;
+    const baseFreq = 50 - wordIndex * 10;
+
+    // Heavy bass hit
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(baseFreq + 30, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq, this.ctx.currentTime + 0.5);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(intensity, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 1.5);
+
+    // Noise burst
+    this.playNoise(0.15 + wordIndex * 0.05, 0.08 + wordIndex * 0.04);
+
+    // On last word "DREAD" - add dissonant sting
+    if (wordIndex === 2) {
+      this.playTone(180, 2, 'sawtooth', 0.08);
+      this.playTone(187, 2, 'sawtooth', 0.06);
+      setTimeout(() => this.playNoise(1, 0.04), 200);
+    }
+  }
+
+  // Slow creepy door opening sound
+  playHorrorDoorOpen() {
+    if (!this.ctx || !this.masterGain) return;
+    // Long creaking sound
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(200, this.ctx.currentTime + 0.5);
+    osc.frequency.linearRampToValueAtTime(120, this.ctx.currentTime + 1.0);
+    osc.frequency.linearRampToValueAtTime(250, this.ctx.currentTime + 1.5);
+    osc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 2.0);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.06, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.1, this.ctx.currentTime + 0.8);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2.2);
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 300;
+    filt.Q.value = 3;
+    osc.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 2.5);
+
+    // Wood stress groans
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc2 = this.ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(60, this.ctx.currentTime);
+      osc2.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.6);
+      const g2 = this.ctx.createGain();
+      g2.gain.value = 0.05;
+      g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.8);
+      osc2.connect(g2);
+      g2.connect(this.masterGain);
+      osc2.start();
+      osc2.stop(this.ctx.currentTime + 0.8);
+    }, 400);
+
+    // Deep boom
+    this.playTone(35, 0.8, 'sine', 0.06);
+  }
+
   // --- SFX ---
   startAmbient() {
     if (!this.ctx || !this.masterGain || this.ambientOsc) return;
