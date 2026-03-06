@@ -9,7 +9,7 @@ export default function GameCanvas() {
   const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, selectDoor, phase } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
-  if (phase === 'menu' || phase === 'settings') return null;
+  if (phase === 'menu') return null;
 
   return (
     <div className="absolute inset-0">

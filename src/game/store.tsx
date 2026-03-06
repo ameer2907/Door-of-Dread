@@ -57,7 +57,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     audioManager.startAmbient();
     audioManager.startMusic();
     Object.assign(stateRef.current, {
-      phase: 'playing' as GamePhase,
+      phase: 'intro' as GamePhase,
       currentRoom: 0,
       fear: 0,
       wrongCount: 0,

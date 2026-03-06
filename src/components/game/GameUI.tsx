@@ -445,6 +445,57 @@ function TransitionOverlay() {
   );
 }
 
+function IntroOverlay() {
+  const { phase } = useGame();
+  const [opacity, setOpacity] = useState(1);
+  const [showText, setShowText] = useState(false);
+
+  useEffect(() => {
+    if (phase === 'intro') {
+      setOpacity(1);
+      setShowText(true);
+      // Fade the black overlay as player wakes up
+      const t1 = setTimeout(() => setOpacity(0.7), 500);
+      const t2 = setTimeout(() => setOpacity(0.3), 1500);
+      const t3 = setTimeout(() => setShowText(false), 2500);
+      const t4 = setTimeout(() => setOpacity(0), 3000);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    }
+  }, [phase]);
+
+  if (phase !== 'intro' && phase !== 'playing') return null;
+  if (phase === 'playing' && opacity === 0) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 pointer-events-none transition-opacity duration-1000"
+      style={{ opacity }}
+    >
+      <div className="absolute inset-0 bg-black" />
+      {/* Blur / vision clearing effect */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%)',
+        }}
+      />
+      {showText && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center space-y-2 animate-fade-in">
+            <p className="font-horror text-xl text-muted-foreground/60 tracking-[0.4em]"
+               style={{ animation: 'flicker-text 3s infinite' }}>
+              Wake up...
+            </p>
+            <p className="text-muted-foreground/30 text-xs font-body tracking-widest">
+              Something is wrong
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MusicToggle() {
   const { phase } = useGame();
   const [musicOn, setMusicOn] = useState(true);
@@ -483,6 +534,7 @@ export default function GameUI() {
       <WinScreen />
       <SettingsMenu />
       <TransitionOverlay />
+      <IntroOverlay />
     </>
   );
 }

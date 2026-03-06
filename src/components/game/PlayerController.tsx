@@ -6,7 +6,7 @@ import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
 
 export default function PlayerController() {
-  const { phase, selectDoor, pause, setTargetedDoor, setPointerLocked, getState, increaseFear } = useGame();
+  const { phase, selectDoor, pause, setTargetedDoor, setPointerLocked, getState, increaseFear, setPhase } = useGame();
   const { camera, scene } = useThree();
   const controlsRef = useRef<any>(null);
   const keys = useRef<Record<string, boolean>>({});
@@ -17,12 +17,23 @@ export default function PlayerController() {
   const prevTargeted = useRef<number | null>(null);
   const fearTimer = useRef(0);
   const shakeOffset = useRef({ x: 0, y: 0 });
+  const introTime = useRef(0);
+  const introStarted = useRef(false);
 
   const currentRoom = getState().currentRoom;
   useEffect(() => {
-    camera.position.set(0, 1.7, 3);
-    camera.lookAt(0, 1.7, -5);
-  }, [currentRoom, camera]);
+    const gs = getState();
+    if (gs.phase === 'intro') {
+      // Start lying down on the floor
+      camera.position.set(0, 0.2, 3);
+      camera.rotation.set(-Math.PI / 2, 0, 0); // Looking up at ceiling
+      introTime.current = 0;
+      introStarted.current = true;
+    } else {
+      camera.position.set(0, 1.7, 3);
+      camera.lookAt(0, 1.7, -5);
+    }
+  }, [currentRoom, camera, phase, getState]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     keys.current[e.code] = true;
@@ -58,6 +69,42 @@ export default function PlayerController() {
 
   useFrame((state, delta) => {
     const gs = getState();
+    
+    // Intro wake-up animation
+    if (gs.phase === 'intro' && introStarted.current) {
+      introTime.current += delta;
+      const t = introTime.current;
+      const duration = 4.0; // total intro duration in seconds
+      
+      if (t < duration) {
+        const progress = Math.min(t / duration, 1);
+        // Ease out cubic
+        const ease = 1 - Math.pow(1 - progress, 3);
+        
+        // Rise from floor (0.2) to standing (1.7)
+        camera.position.y = 0.2 + ease * 1.5;
+        
+        // Rotate from looking at ceiling (-PI/2) to looking forward (0)
+        camera.rotation.x = -Math.PI / 2 + ease * Math.PI / 2;
+        
+        // Slight sway during waking up
+        if (t > 0.5) {
+          const sway = Math.sin(t * 2) * 0.02 * (1 - ease);
+          camera.rotation.z = sway;
+        }
+        
+        // Blurry vision clear-up is handled by the UI overlay
+      } else {
+        // Intro done, switch to playing
+        camera.position.set(0, 1.7, 3);
+        camera.rotation.set(0, 0, 0);
+        camera.lookAt(0, 1.7, -5);
+        introStarted.current = false;
+        setPhase('playing');
+      }
+      return;
+    }
+    
     if (gs.phase !== 'playing') return;
 
     // Movement
