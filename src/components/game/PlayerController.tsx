@@ -69,6 +69,42 @@ export default function PlayerController() {
 
   useFrame((state, delta) => {
     const gs = getState();
+    
+    // Intro wake-up animation
+    if (gs.phase === 'intro' && introStarted.current) {
+      introTime.current += delta;
+      const t = introTime.current;
+      const duration = 4.0; // total intro duration in seconds
+      
+      if (t < duration) {
+        const progress = Math.min(t / duration, 1);
+        // Ease out cubic
+        const ease = 1 - Math.pow(1 - progress, 3);
+        
+        // Rise from floor (0.2) to standing (1.7)
+        camera.position.y = 0.2 + ease * 1.5;
+        
+        // Rotate from looking at ceiling (-PI/2) to looking forward (0)
+        camera.rotation.x = -Math.PI / 2 + ease * Math.PI / 2;
+        
+        // Slight sway during waking up
+        if (t > 0.5) {
+          const sway = Math.sin(t * 2) * 0.02 * (1 - ease);
+          camera.rotation.z = sway;
+        }
+        
+        // Blurry vision clear-up is handled by the UI overlay
+      } else {
+        // Intro done, switch to playing
+        camera.position.set(0, 1.7, 3);
+        camera.rotation.set(0, 0, 0);
+        camera.lookAt(0, 1.7, -5);
+        introStarted.current = false;
+        setPhase('playing');
+      }
+      return;
+    }
+    
     if (gs.phase !== 'playing') return;
 
     // Movement
