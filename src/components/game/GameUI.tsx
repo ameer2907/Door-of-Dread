@@ -534,6 +534,7 @@ export default function GameUI() {
       <WinScreen />
       <SettingsMenu />
       <TransitionOverlay />
+      <IntroOverlay />
     </>
   );
 }
