@@ -77,7 +77,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (st.isTransitioning || st.openingDoor !== null || st.phase !== 'playing') return;
 
     st.openingDoor = index;
-    audioManager.playDoorCreak();
+    audioManager.playHorrorDoorOpen();
     update();
 
     setTimeout(() => {
@@ -117,7 +117,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         audioManager.playFlicker();
         update();
 
-        if (st2.wrongCount >= 3 || st2.fear >= 100) {
+        if (st2.wrongCount >= 2 || st2.fear >= 100) {
           st2.ghostState = 'attack';
           st2.ghostVisible = true;
           audioManager.playGhostScream();
