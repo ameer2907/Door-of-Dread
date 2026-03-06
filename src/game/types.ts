@@ -1,4 +1,4 @@
-export type GamePhase = 'menu' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
+export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
 export type GhostState = 'hidden' | 'watching' | 'close' | 'attack';
 
 export interface RoomConfig {

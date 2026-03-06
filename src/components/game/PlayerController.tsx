@@ -6,7 +6,7 @@ import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
 
 export default function PlayerController() {
-  const { phase, selectDoor, pause, setTargetedDoor, setPointerLocked, getState, increaseFear } = useGame();
+  const { phase, selectDoor, pause, setTargetedDoor, setPointerLocked, getState, increaseFear, setPhase } = useGame();
   const { camera, scene } = useThree();
   const controlsRef = useRef<any>(null);
   const keys = useRef<Record<string, boolean>>({});
@@ -17,12 +17,23 @@ export default function PlayerController() {
   const prevTargeted = useRef<number | null>(null);
   const fearTimer = useRef(0);
   const shakeOffset = useRef({ x: 0, y: 0 });
+  const introTime = useRef(0);
+  const introStarted = useRef(false);
 
   const currentRoom = getState().currentRoom;
   useEffect(() => {
-    camera.position.set(0, 1.7, 3);
-    camera.lookAt(0, 1.7, -5);
-  }, [currentRoom, camera]);
+    const gs = getState();
+    if (gs.phase === 'intro') {
+      // Start lying down on the floor
+      camera.position.set(0, 0.2, 3);
+      camera.rotation.set(-Math.PI / 2, 0, 0); // Looking up at ceiling
+      introTime.current = 0;
+      introStarted.current = true;
+    } else {
+      camera.position.set(0, 1.7, 3);
+      camera.lookAt(0, 1.7, -5);
+    }
+  }, [currentRoom, camera, phase, getState]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     keys.current[e.code] = true;
