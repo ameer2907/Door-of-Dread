@@ -9,7 +9,12 @@ export default function GameCanvas() {
   const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, selectDoor, phase } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
-  if (phase === 'menu' || phase === 'settings') return null;
+  if (phase === 'menu' || (phase === 'settings' && !openingDoor)) {
+    // Show canvas during intro for wake-up sequence
+    if (phase !== 'menu') { /* allow */ }
+    else return null;
+  }
+  if (phase === 'menu') return null;
 
   return (
     <div className="absolute inset-0">
