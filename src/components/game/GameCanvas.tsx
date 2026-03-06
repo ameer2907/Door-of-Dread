@@ -33,6 +33,7 @@ export default function GameCanvas() {
           visible={ghostVisible}
           state={ghostState}
           roomIndex={currentRoom}
+          spawnDoorIndex={openingDoor}
         />
 
         <PlayerController />
