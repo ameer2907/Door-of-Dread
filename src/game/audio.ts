@@ -613,83 +613,90 @@ class AudioManager {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
 
-    // Multi-layered door creak - slow, long, realistic
-    // Layer 1: Main creak (wood stress)
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(60, t);
-    osc.frequency.linearRampToValueAtTime(180, t + 0.6);
-    osc.frequency.linearRampToValueAtTime(100, t + 1.2);
-    osc.frequency.linearRampToValueAtTime(220, t + 1.8);
-    osc.frequency.linearRampToValueAtTime(80, t + 2.5);
-    osc.frequency.linearRampToValueAtTime(150, t + 3.0);
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.001, t);
-    g.gain.linearRampToValueAtTime(0.12, t + 0.3);
-    g.gain.linearRampToValueAtTime(0.08, t + 1.5);
-    g.gain.linearRampToValueAtTime(0.1, t + 2.0);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 3.2);
-    const filt = this.ctx.createBiquadFilter();
-    filt.type = 'bandpass';
-    filt.frequency.value = 350;
-    filt.Q.value = 4;
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(this.masterGain);
-    osc.start();
-    osc.stop(t + 3.5);
+    // Layer 1: Heavy iron/wood creak — slow, agonizing groan
+    const creak1 = this.ctx.createOscillator();
+    creak1.type = 'sawtooth';
+    creak1.frequency.setValueAtTime(45, t);
+    creak1.frequency.linearRampToValueAtTime(120, t + 1.0);
+    creak1.frequency.linearRampToValueAtTime(65, t + 2.0);
+    creak1.frequency.linearRampToValueAtTime(180, t + 3.0);
+    creak1.frequency.exponentialRampToValueAtTime(50, t + 4.0);
+    const cg1 = this.ctx.createGain();
+    cg1.gain.setValueAtTime(0.001, t);
+    cg1.gain.linearRampToValueAtTime(0.14, t + 0.5);
+    cg1.gain.linearRampToValueAtTime(0.09, t + 2.0);
+    cg1.gain.linearRampToValueAtTime(0.12, t + 3.0);
+    cg1.gain.exponentialRampToValueAtTime(0.001, t + 4.5);
+    const cf1 = this.ctx.createBiquadFilter();
+    cf1.type = 'bandpass'; cf1.frequency.value = 280; cf1.Q.value = 5;
+    creak1.connect(cf1); cf1.connect(cg1); cg1.connect(this.masterGain);
+    creak1.start(t); creak1.stop(t + 4.5);
 
-    // Layer 2: High-pitched hinge squeal
-    const hingeOsc = this.ctx.createOscillator();
-    hingeOsc.type = 'triangle';
-    hingeOsc.frequency.setValueAtTime(400, t + 0.2);
-    hingeOsc.frequency.exponentialRampToValueAtTime(200, t + 0.8);
-    hingeOsc.frequency.linearRampToValueAtTime(500, t + 1.4);
-    hingeOsc.frequency.exponentialRampToValueAtTime(180, t + 2.0);
-    const hingeG = this.ctx.createGain();
-    hingeG.gain.setValueAtTime(0.001, t);
-    hingeG.gain.linearRampToValueAtTime(0.06, t + 0.3);
-    hingeG.gain.linearRampToValueAtTime(0.03, t + 1.0);
-    hingeG.gain.linearRampToValueAtTime(0.05, t + 1.6);
-    hingeG.gain.exponentialRampToValueAtTime(0.001, t + 2.3);
-    const hingeFilt = this.ctx.createBiquadFilter();
-    hingeFilt.type = 'bandpass';
-    hingeFilt.frequency.value = 600;
-    hingeFilt.Q.value = 6;
-    hingeOsc.connect(hingeFilt);
-    hingeFilt.connect(hingeG);
-    hingeG.connect(this.masterGain);
-    hingeOsc.start(t + 0.15);
-    hingeOsc.stop(t + 2.5);
+    // Layer 2: High rusty hinge shriek — painful, metallic
+    const hinge = this.ctx.createOscillator();
+    hinge.type = 'square';
+    hinge.frequency.setValueAtTime(600, t + 0.3);
+    hinge.frequency.exponentialRampToValueAtTime(250, t + 1.2);
+    hinge.frequency.linearRampToValueAtTime(700, t + 2.2);
+    hinge.frequency.exponentialRampToValueAtTime(200, t + 3.5);
+    const hg = this.ctx.createGain();
+    hg.gain.setValueAtTime(0.001, t);
+    hg.gain.linearRampToValueAtTime(0.04, t + 0.5);
+    hg.gain.linearRampToValueAtTime(0.02, t + 1.5);
+    hg.gain.linearRampToValueAtTime(0.035, t + 2.5);
+    hg.gain.exponentialRampToValueAtTime(0.001, t + 3.8);
+    const hf = this.ctx.createBiquadFilter();
+    hf.type = 'bandpass'; hf.frequency.value = 800; hf.Q.value = 8;
+    hinge.connect(hf); hf.connect(hg); hg.connect(this.masterGain);
+    hinge.start(t + 0.2); hinge.stop(t + 4.0);
 
-    // Layer 3: Wood groaning/stress
+    // Layer 3: Deep wood stress groan — subsonic weight
+    const wood = this.ctx.createOscillator();
+    wood.type = 'triangle';
+    wood.frequency.setValueAtTime(35, t);
+    wood.frequency.linearRampToValueAtTime(60, t + 1.5);
+    wood.frequency.linearRampToValueAtTime(30, t + 3.0);
+    const wg = this.ctx.createGain();
+    wg.gain.setValueAtTime(0.001, t);
+    wg.gain.linearRampToValueAtTime(0.08, t + 0.8);
+    wg.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+    wood.connect(wg); wg.connect(this.masterGain);
+    wood.start(t); wood.stop(t + 3.5);
+
+    // Layer 4: Heavy latch clunk — mechanical, cold
+    this.playTone(80, 0.06, 'square', 0.12);
+    setTimeout(() => this.playTone(55, 0.04, 'square', 0.08), 40);
+
+    // Layer 5: Cold air rush through opening
+    setTimeout(() => {
+      this.playFilteredNoise(3, 0.06, 350, 'bandpass', 2);
+    }, 800);
+
+    // Layer 6: Sub bass slam feel
+    const sub = this.ctx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.value = 22;
+    const sg = this.ctx.createGain();
+    sg.gain.setValueAtTime(0.001, t);
+    sg.gain.linearRampToValueAtTime(0.12, t + 0.1);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+    sub.connect(sg); sg.connect(this.masterGain);
+    sub.start(t); sub.stop(t + 2.0);
+
+    // Layer 7: Eerie tonal whisper as door opens
     setTimeout(() => {
       if (!this.ctx || !this.masterGain) return;
-      const woodOsc = this.ctx.createOscillator();
-      woodOsc.type = 'triangle';
-      woodOsc.frequency.setValueAtTime(50, this.ctx.currentTime);
-      woodOsc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 0.8);
-      woodOsc.frequency.linearRampToValueAtTime(45, this.ctx.currentTime + 1.2);
-      const woodG = this.ctx.createGain();
-      woodG.gain.setValueAtTime(0.06, this.ctx.currentTime);
-      woodG.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.5);
-      woodOsc.connect(woodG);
-      woodG.connect(this.masterGain);
-      woodOsc.start();
-      woodOsc.stop(this.ctx.currentTime + 1.5);
-    }, 400);
-
-    // Layer 4: Latch click at start
-    this.playTone(1200, 0.03, 'square', 0.08);
-    setTimeout(() => this.playTone(800, 0.02, 'square', 0.05), 50);
-
-    // Layer 5: Air/wind whistle through gap
-    setTimeout(() => {
-      this.playFilteredNoise(2.5, 0.04, 400, 'bandpass', 2);
-    }, 600);
-
-    // Deep sub thud
-    this.playTone(30, 1.2, 'sine', 0.08);
+      const eerieOsc = this.ctx.createOscillator();
+      eerieOsc.type = 'sine';
+      eerieOsc.frequency.setValueAtTime(220, this.ctx.currentTime);
+      eerieOsc.frequency.linearRampToValueAtTime(185, this.ctx.currentTime + 2);
+      const eg = this.ctx.createGain();
+      eg.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      eg.gain.linearRampToValueAtTime(0.025, this.ctx.currentTime + 0.8);
+      eg.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2.5);
+      eerieOsc.connect(eg); eg.connect(this.masterGain!);
+      eerieOsc.start(); eerieOsc.stop(this.ctx.currentTime + 3);
+    }, 500);
   }
 
   playDoorCreak() {
