@@ -415,35 +415,65 @@ class AudioManager {
 
   private _startPianoLoop() {
     if (!this.ctx || !this.musicGain) return;
-    const notes = [110, 130.81, 146.83, 164.81, 196, 220];
+    // Dark minor key / diminished notes for maximum tension
+    const notes = [
+      82.41, 87.31, 98, 103.83, 110, 116.54, // low register - dark
+      123.47, 130.81, 138.59, 146.83, 155.56, // mid register - dissonant
+      164.81, 174.61, 185, 196, 207.65,        // upper mid
+    ];
     const playNote = () => {
       if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
       const freq = notes[Math.floor(Math.random() * notes.length)];
       const osc = this.ctx.createOscillator();
       osc.type = 'sine';
       osc.frequency.value = freq;
-      osc.detune.value = (Math.random() - 0.5) * 15;
+      osc.detune.value = (Math.random() - 0.5) * 20;
       const g = this.ctx.createGain();
-      g.gain.value = 0.04;
-      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 4);
-      const delay = this.ctx.createDelay();
-      delay.delayTime.value = 0.4;
-      const dGain = this.ctx.createGain();
-      dGain.gain.value = 0.02;
+      g.gain.setValueAtTime(0.06, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 5);
+      // Reverb delays for haunted piano feel
+      const delay1 = this.ctx.createDelay();
+      delay1.delayTime.value = 0.35;
+      const d1g = this.ctx.createGain();
+      d1g.gain.value = 0.035;
+      const delay2 = this.ctx.createDelay();
+      delay2.delayTime.value = 0.8;
+      const d2g = this.ctx.createGain();
+      d2g.gain.value = 0.02;
+      const delay3 = this.ctx.createDelay();
+      delay3.delayTime.value = 1.4;
+      const d3g = this.ctx.createGain();
+      d3g.gain.value = 0.012;
       osc.connect(g);
       g.connect(this.musicGain!);
-      g.connect(delay);
-      delay.connect(dGain);
-      dGain.connect(this.musicGain!);
+      g.connect(delay1); delay1.connect(d1g); d1g.connect(this.musicGain!);
+      g.connect(delay2); delay2.connect(d2g); d2g.connect(this.musicGain!);
+      g.connect(delay3); delay3.connect(d3g); d3g.connect(this.musicGain!);
       osc.start();
-      osc.stop(this.ctx.currentTime + 4.5);
+      osc.stop(this.ctx.currentTime + 5.5);
+      // Occasional dissonant double-note (minor 2nd)
+      if (Math.random() > 0.6) {
+        setTimeout(() => {
+          if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
+          const osc2 = this.ctx.createOscillator();
+          osc2.type = 'sine';
+          osc2.frequency.value = freq * 1.0595; // semitone up = dissonant
+          const g2 = this.ctx.createGain();
+          g2.gain.setValueAtTime(0.03, this.ctx.currentTime);
+          g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
+          osc2.connect(g2);
+          g2.connect(this.musicGain!);
+          osc2.start();
+          osc2.stop(this.ctx.currentTime + 3.5);
+        }, 200 + Math.random() * 400);
+      }
     };
     const scheduleNext = () => {
       if (!this.musicPlaying) return;
-      const d = 4000 + Math.random() * 5000;
+      const d = 2500 + Math.random() * 3500; // more frequent
       setTimeout(() => { playNote(); scheduleNext(); }, d);
     };
-    setTimeout(() => { playNote(); scheduleNext(); }, 2000);
+    setTimeout(() => { playNote(); scheduleNext(); }, 1500);
   }
 
   stopMusic() {
