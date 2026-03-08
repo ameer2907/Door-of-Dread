@@ -31,6 +31,7 @@ export default function GameCanvas() {
           openingDoor={openingDoor}
           flickering={flickering}
           onSelectDoor={selectDoor}
+          darkness={roomDarkness}
         />
 
         {/* Next room visible through the portal door */}
