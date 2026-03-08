@@ -409,6 +409,30 @@ export default function MainMenu() {
           </button>
 
           <button
+            onClick={() => setPhase('lore')}
+            className="block w-56 sm:w-64 md:w-72 mx-auto py-2 sm:py-3 rounded-lg font-body text-xs sm:text-sm tracking-[0.3em] uppercase
+                       transition-all duration-300 border backdrop-blur-sm
+                       hover:scale-[1.02]"
+            style={{
+              borderColor: 'hsl(0, 30%, 18%)',
+              backgroundColor: 'hsla(0, 20%, 8%, 0.6)',
+              color: 'hsl(0, 20%, 42%)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'hsl(0, 50%, 30%)';
+              e.currentTarget.style.color = 'hsl(0, 30%, 60%)';
+              e.currentTarget.style.boxShadow = '0 0 15px rgba(150,20,20,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'hsl(0, 30%, 18%)';
+              e.currentTarget.style.color = 'hsl(0, 20%, 42%)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            The Lore
+          </button>
+
+          <button
             onClick={() => setPhase('settings')}
             className="block w-56 sm:w-64 md:w-72 mx-auto py-2 sm:py-3 rounded-lg font-body text-xs sm:text-sm tracking-[0.3em] uppercase
                        transition-all duration-300 border backdrop-blur-sm
