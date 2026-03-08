@@ -664,6 +664,7 @@ export default function GameUI() {
       <InteractPrompt />
       <FearOverlay />
       <FlickerOverlay />
+      <GhostApproachOverlay />
       <GhostAttackOverlay />
       <HUD />
       <MusicToggle />
