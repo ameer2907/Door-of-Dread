@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
-import { GamePhase, GhostState, GhostType, GameSettings, GameState, PortalTransition } from './types';
+import { GamePhase, GhostState, GhostType, GhostSpawnType, GameSettings, GameState, PortalTransition } from './types';
 import { ROOM_CONFIGS } from './rooms';
 import { audioManager } from './audio';
 
