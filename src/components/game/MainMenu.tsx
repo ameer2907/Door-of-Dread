@@ -299,6 +299,8 @@ export default function MainMenu() {
   const handleEnter = useCallback(() => {
     if (entering) return;
     setEntering(true);
+    audioManager.stopHeartbeat();
+    if (hoverTimer.current) { clearInterval(hoverTimer.current); hoverTimer.current = null; }
     audioManager.playHorrorDoorOpen();
 
     setTimeout(() => {
