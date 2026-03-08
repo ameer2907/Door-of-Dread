@@ -118,6 +118,37 @@ function ScreenGrain() {
   );
 }
 
+function BloodDripLetter({ char, delay, isDread }: { char: string; delay: number; isDread: boolean }) {
+  const dripCount = isDread ? 2 + Math.floor(Math.random() * 2) : 1 + Math.floor(Math.random() * 2);
+  return (
+    <span className="relative inline-block">
+      {char}
+      {Array.from({ length: dripCount }).map((_, i) => {
+        const left = 10 + Math.random() * 80;
+        const h = 12 + Math.random() * (isDread ? 50 : 30);
+        const d = delay + 0.8 + i * 0.6 + Math.random() * 1.5;
+        const dur = 2.5 + Math.random() * 3;
+        return (
+          <span
+            key={i}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${left}%`,
+              top: '85%',
+              width: `${1.5 + Math.random() * 1.5}px`,
+              height: `${h}px`,
+              borderRadius: '0 0 50% 50%',
+              background: `linear-gradient(to bottom, hsl(0, 85%, 40%), hsl(0, 90%, 25%), transparent)`,
+              opacity: 0,
+              animation: `title-blood-drip ${dur}s ease-in ${d}s forwards`,
+            }}
+          />
+        );
+      })}
+    </span>
+  );
+}
+
 function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boolean }) {
   return (
     <div className="relative px-4">
@@ -173,7 +204,11 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
                 animationDelay: `${i * 0.5}s`,
               }}
             >
-              {word}
+              {isVisible && !isOf
+                ? word.split('').map((char, ci) => (
+                    <BloodDripLetter key={ci} char={char} delay={i * 1.4 + ci * 0.3} isDread={isDread} />
+                  ))
+                : word}
             </h1>
           </div>
         );
