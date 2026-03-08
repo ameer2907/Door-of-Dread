@@ -954,8 +954,14 @@ class AudioManager {
   }
 
   playCorrectDoor() {
-    this.playTone(440, 0.3, 'sine', 0.1);
-    setTimeout(() => this.playTone(550, 0.3, 'sine', 0.08), 150);
+    if (!this.ctx || !this.masterGain) return;
+    // Eerie low confirmation — not happy, just... relief mixed with dread
+    this.playTone(110, 1.5, 'sine', 0.08);
+    this.playTone(130.81, 1.5, 'sine', 0.05); // minor 3rd — somber
+    setTimeout(() => {
+      this.playFilteredNoise(1.2, 0.03, 300, 'bandpass', 2);
+    }, 200);
+    this.playTone(25, 1, 'sine', 0.06); // sub rumble
   }
 
   // Wind gust during portal transition
