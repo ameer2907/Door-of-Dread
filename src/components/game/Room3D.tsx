@@ -16,17 +16,18 @@ interface Props {
   onSelectDoor: (index: number) => void;
 }
 
-function RoomLight({ config, flickering }: { config: RoomConfig; flickering: boolean }) {
+function RoomLight({ config, flickering, darkness }: { config: RoomConfig; flickering: boolean; darkness: number }) {
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(() => {
     if (!lightRef.current) return;
+    const darkenMult = 1 - darkness * 0.7;
     if (flickering) {
-      lightRef.current.intensity = Math.random() * config.pointLightIntensity;
+      lightRef.current.intensity = Math.random() * config.pointLightIntensity * darkenMult;
     } else if (config.lightFailure) {
-      lightRef.current.intensity = config.pointLightIntensity * (0.7 + Math.sin(Date.now() * 0.005) * 0.3);
+      lightRef.current.intensity = config.pointLightIntensity * (0.7 + Math.sin(Date.now() * 0.005) * 0.3) * darkenMult;
     } else {
-      lightRef.current.intensity = config.pointLightIntensity;
+      lightRef.current.intensity = config.pointLightIntensity * darkenMult;
     }
   });
 
