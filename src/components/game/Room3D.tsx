@@ -59,7 +59,7 @@ function WallPlane({ position, rotation, size, color }: {
   );
 }
 
-export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoor, flickering, onSelectDoor }: Props) {
+export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoor, flickering, onSelectDoor, darkness = 0 }: Props & { darkness?: number }) {
   const dustCount = Math.floor(config.dustDensity * 80);
 
   return (
