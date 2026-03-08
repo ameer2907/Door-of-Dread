@@ -2,6 +2,7 @@ import { GameProvider } from '@/game/store';
 import GameCanvas from '@/components/game/GameCanvas';
 import GameUI from '@/components/game/GameUI';
 import MainMenu from '@/components/game/MainMenu';
+import LoreScreen from '@/components/game/LoreScreen';
 import JoystickControl from '@/components/game/JoystickControl';
 import PostProcessing from '@/components/game/PostProcessing';
 
@@ -13,6 +14,7 @@ export default function Index() { // Door of Dread
         <PostProcessing />
         <GameUI />
         <MainMenu />
+        <LoreScreen />
         <JoystickControl />
       </div>
     </GameProvider>
