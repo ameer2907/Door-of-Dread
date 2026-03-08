@@ -1,6 +1,6 @@
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings' | 'lore';
 export type GhostState = 'hidden' | 'watching' | 'approaching' | 'close' | 'attack';
-export type GhostSpawnType = 'doorway' | 'behind' | 'corridor' | 'shadows';
+export type GhostSpawnType = 'doorway' | 'behind' | 'corridor' | 'shadows' | 'ceiling';
 export type GhostType = 'stalker' | 'shadow' | 'jumpscare' | 'corridor' | 'nun';
 export type PortalPhase = 'none' | 'doorOpening' | 'walkThrough' | 'arriving';
 
@@ -34,10 +34,10 @@ export interface GameSettings {
 
 export interface PortalTransition {
   phase: PortalPhase;
-  doorIndex: number;         // which door was selected
-  nextRoomIndex: number;     // next room to show behind door
-  progress: number;          // 0-1 animation progress
-  fogDensity: number;        // 0-1 transition fog
+  doorIndex: number;
+  nextRoomIndex: number;
+  progress: number;
+  fogDensity: number;
 }
 
 export interface GameState {
@@ -60,6 +60,12 @@ export interface GameState {
   chromaticAberration: number;
   portal: PortalTransition;
   ghostSpawnType: GhostSpawnType;
-  ghostApproachProgress: number; // 0-1 how close ghost is to player
-  roomDarkness: number; // 0-1 room darkening during encounters
+  ghostApproachProgress: number;
+  roomDarkness: number;
+  // Advanced mechanics
+  chaseMode: boolean;           // ghost chase active
+  chaseDoorIndex: number | null; // which door is safe during chase
+  trapDoorActive: boolean;       // fake safe door trap in progress
+  ghostBehindPlayer: boolean;    // ghost silently behind player
+  mirrorGhostVisible: boolean;   // ghost visible in mirror reflection
 }
