@@ -208,19 +208,19 @@ function HUD() {
   return (
     <>
       {/* Room name */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 pointer-events-none z-20">
-        <h2 className="font-horror text-2xl text-primary tracking-wider opacity-70">
+      <div className="fixed top-3 sm:top-4 left-1/2 -translate-x-1/2 pointer-events-none z-20">
+        <h2 className="font-horror text-lg sm:text-2xl text-primary tracking-wider opacity-70">
           {config.name}
         </h2>
-        <p className="text-center text-muted-foreground text-xs">
+        <p className="text-center text-muted-foreground text-[10px] sm:text-xs">
           Room {currentRoom + 1} / 10
         </p>
       </div>
 
       {/* Fear meter */}
-      <div className="fixed top-4 right-4 pointer-events-none z-20 w-32">
-        <p className="text-xs text-muted-foreground mb-1">FEAR</p>
-        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+      <div className="fixed top-3 sm:top-4 right-3 sm:right-4 pointer-events-none z-20 w-20 sm:w-32">
+        <p className="text-[10px] sm:text-xs text-muted-foreground mb-1">FEAR</p>
+        <div className="h-1.5 sm:h-2 bg-secondary rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-300"
             style={{
@@ -233,8 +233,8 @@ function HUD() {
 
       {/* Wrong attempts */}
       {wrongCount > 0 && (
-        <div className="fixed top-4 left-4 pointer-events-none z-20">
-          <p className="text-xs text-primary">
+        <div className="fixed top-3 sm:top-4 left-3 sm:left-4 pointer-events-none z-20">
+          <p className="text-[10px] sm:text-xs text-primary">
             Wrong: {wrongCount} / 2
           </p>
         </div>
@@ -243,7 +243,7 @@ function HUD() {
       {/* Click to lock message */}
       {!pointerLocked && (
         <div className="fixed inset-0 flex items-center justify-center z-40 bg-background/50 cursor-pointer pointer-events-none">
-          <p className="text-foreground text-lg animate-pulse font-body">
+          <p className="text-foreground text-sm sm:text-lg animate-pulse font-body">
             Click to look around
           </p>
         </div>
