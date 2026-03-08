@@ -223,7 +223,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           st2.ghostType = 'nun';
           st2.ghostVisible = true;
           st2.roomDarkness = 0.3;
+          audioManager.playGhostArrivalScream();
           audioManager.playGhostSting();
+          audioManager.playGhostPresenceDrone();
           audioManager.startHeartbeat(900);
           update();
 
