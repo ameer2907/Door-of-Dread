@@ -180,7 +180,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           update();
         }, 4200);
       } else {
-        // === WRONG DOOR (unchanged logic) ===
+        // === WRONG DOOR: CINEMATIC HORROR SEQUENCE ===
         audioManager.playWrongDoor();
         const roomCfg = ROOM_CONFIGS[st2.currentRoom];
         st2.wrongCount++;
@@ -189,39 +189,108 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         st2.screenShake = 0.3;
         st2.chromaticAberration = 0.4;
         audioManager.playFlicker();
-        update();
+
+        // Random spawn type
+        const spawnTypes: GhostSpawnType[] = ['doorway', 'behind', 'corridor', 'shadows'];
+        const randomSpawn = spawnTypes[Math.floor(Math.random() * spawnTypes.length)];
+        st2.ghostSpawnType = randomSpawn;
+        st2.ghostApproachProgress = 0;
 
         const ghostTypes: GhostType[] = ['shadow', 'corridor', 'stalker', 'jumpscare', 'nun'];
         const selectedGhost = st2.wrongCount >= 2
           ? 'nun'
           : ghostTypes[Math.min(st2.currentRoom, ghostTypes.length - 1)];
         st2.ghostType = selectedGhost;
+        update();
 
+        // === LETHAL SEQUENCE (2 wrong or fear maxed) ===
         if (st2.wrongCount >= 2 || st2.fear >= 100) {
-          st2.ghostState = 'attack';
+          // Phase 1: Door opens to reveal ghost silhouette (0-1.5s)
+          st2.ghostState = 'watching';
           st2.ghostType = 'nun';
           st2.ghostVisible = true;
-          st2.screenShake = 1;
-          st2.chromaticAberration = 1;
-          audioManager.playGhostScream();
-          audioManager.startHeartbeat(300);
+          st2.roomDarkness = 0.3;
+          audioManager.playGhostSting();
+          audioManager.startHeartbeat(900);
           update();
+
+          // Phase 2: Ghost slowly approaches (1.5-4.5s)
+          setTimeout(() => {
+            const st3 = stateRef.current;
+            st3.ghostState = 'approaching';
+            st3.roomDarkness = 0.5;
+            st3.screenShake = 0.1;
+            st3.chromaticAberration = 0.5;
+            audioManager.stopHeartbeat();
+            audioManager.startHeartbeat(600);
+            audioManager.playApproachDrone();
+            audioManager.playWhisper();
+            update();
+          }, 1500);
+
+          // Phase 3: Ghost gets close - tension peak (4.5-6s)
+          setTimeout(() => {
+            const st3 = stateRef.current;
+            st3.ghostState = 'close';
+            st3.ghostApproachProgress = 0.7;
+            st3.roomDarkness = 0.7;
+            st3.screenShake = 0.25;
+            st3.chromaticAberration = 0.7;
+            audioManager.stopHeartbeat();
+            audioManager.startHeartbeat(350);
+            audioManager.playBreathingSound();
+            update();
+          }, 4500);
+
+          // Phase 4: JUMPSCARE LUNGE (6s)
+          setTimeout(() => {
+            const st3 = stateRef.current;
+            st3.ghostState = 'attack';
+            st3.ghostApproachProgress = 1;
+            st3.roomDarkness = 0.9;
+            st3.screenShake = 1;
+            st3.chromaticAberration = 1;
+            audioManager.playGhostScream();
+            audioManager.playJumpscareStinger();
+            update();
+          }, 6000);
+
+          // Phase 5: Game over
           setTimeout(() => {
             stateRef.current.phase = 'gameover';
+            stateRef.current.roomDarkness = 0;
+            stateRef.current.ghostApproachProgress = 0;
             audioManager.stopAll();
             update();
-          }, 3000);
+          }, 8500);
+
         } else if (roomCfg.ghostLevel > 0) {
+          // === NON-LETHAL GHOST SIGHTING ===
           st2.ghostVisible = true;
-          st2.ghostState = roomCfg.ghostLevel >= 2 ? 'close' : 'watching';
+          st2.ghostState = 'watching';
+          st2.roomDarkness = 0.2;
+          audioManager.playGhostSting();
+          update();
+
+          // Brief approach
+          if (roomCfg.ghostLevel >= 2) {
+            setTimeout(() => {
+              const st3 = stateRef.current;
+              st3.ghostState = 'approaching';
+              st3.roomDarkness = 0.35;
+              st3.screenShake = 0.08;
+              audioManager.startHeartbeat(800 - st3.fear * 4);
+              update();
+            }, 800);
+          }
+
           if (selectedGhost === 'jumpscare') {
             audioManager.playJumpscareStinger();
             st2.screenShake = 0.6;
-          } else {
-            audioManager.playGhostSting();
           }
           update();
-          if (st2.fear > 50) audioManager.startHeartbeat(800 - st2.fear * 4);
+
+          // Dismiss after approach
           setTimeout(() => {
             const st3 = stateRef.current;
             st3.ghostVisible = false;
@@ -231,9 +300,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             st3.openingDoor = null;
             st3.screenShake = 0;
             st3.chromaticAberration = Math.max(0, st3.chromaticAberration - 0.3);
+            st3.roomDarkness = 0;
+            st3.ghostApproachProgress = 0;
             audioManager.stopHeartbeat();
             update();
-          }, 2500);
+          }, roomCfg.ghostLevel >= 2 ? 3500 : 2500);
         } else {
           setTimeout(() => {
             const st3 = stateRef.current;
@@ -242,6 +313,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             st3.openingDoor = null;
             st3.screenShake = 0;
             st3.chromaticAberration = 0;
+            st3.roomDarkness = 0;
             update();
           }, 1500);
         }
