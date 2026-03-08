@@ -285,6 +285,22 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
     spawnTime.current += delta;
     clothOffset.current += delta * 3;
     walkBob.current += delta * 4;
+    twitchTimer.current += delta;
+
+    // === IDLE TWITCH — involuntary, unsettling micro-movements ===
+    if (twitchTimer.current > 0.8 + Math.random() * 1.5) {
+      twitchTimer.current = 0;
+      const intensity = state === 'watching' ? 0.06 : state === 'approaching' ? 0.03 : 0.01;
+      twitchOffset.current = {
+        x: (Math.random() - 0.5) * intensity,
+        y: (Math.random() - 0.5) * intensity * 0.5,
+        z: (Math.random() - 0.5) * intensity * 0.3,
+      };
+    }
+    // Decay twitches
+    twitchOffset.current.x *= 0.92;
+    twitchOffset.current.y *= 0.92;
+    twitchOffset.current.z *= 0.92;
 
     // Fade in - slower for approaching to build silhouette effect
     const fadeSpeed = state === 'watching' ? 1.5 : state === 'approaching' ? 2.0 : 2.5;
