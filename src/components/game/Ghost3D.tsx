@@ -198,26 +198,28 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
   // Calculate spawn position based on spawn type
   const getSpawnPosition = (): [number, number, number] => {
     if (spawnType === 'behind') {
-      // Behind the player
+      // Spawn RIGHT behind the player — very close for maximum scare
+      const behindDir = new THREE.Vector3(0, 0, 1);
+      behindDir.applyQuaternion(camera.quaternion);
+      behindDir.y = 0;
+      behindDir.normalize();
       return [
-        camera.position.x + (Math.random() - 0.5) * 2,
+        camera.position.x + behindDir.x * 1.5,
         0,
-        camera.position.z + 3
+        camera.position.z + behindDir.z * 1.5
       ];
     }
     if (spawnType === 'corridor') {
-      // Far end of room in darkness
       return [0, 0, -4.8];
     }
     if (spawnType === 'shadows') {
-      // Random dark corner
       const corners: [number, number, number][] = [[-4, 0, -4], [4, 0, -4], [-4, 0, 4], [4, 0, 4]];
       return corners[Math.floor(Math.random() * corners.length)];
     }
-    // Default: doorway
+    // Default: doorway — from inside the opened door
     if (spawnDoorIndex !== null && spawnDoorIndex !== undefined && DOOR_POSITIONS[spawnDoorIndex]) {
       const doorPos = DOOR_POSITIONS[spawnDoorIndex];
-      return [doorPos[0], 0, doorPos[2] - 1.5];
+      return [doorPos[0], 0, doorPos[2] - 2.5];
     }
     return [0, 0, -4.5];
   };

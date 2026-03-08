@@ -5,6 +5,7 @@ import Room3D from './Room3D';
 import Ghost3D from './Ghost3D';
 import PlayerController from './PlayerController';
 import NextRoomPortal from './NextRoomPortal';
+import GhostAtmosphere from './GhostAtmosphere';
 
 export default function GameCanvas() { // v2
   const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostSpawnType, ghostApproachProgress, roomDarkness, selectDoor, phase, portal } = useGame();
@@ -49,6 +50,14 @@ export default function GameCanvas() { // v2
           roomIndex={currentRoom}
           spawnDoorIndex={openingDoor}
           spawnType={ghostSpawnType}
+          approachProgress={ghostApproachProgress}
+        />
+
+        {/* Atmospheric horror effects during ghost encounters */}
+        <GhostAtmosphere
+          ghostVisible={ghostVisible}
+          ghostState={ghostState}
+          roomDarkness={roomDarkness}
           approachProgress={ghostApproachProgress}
         />
 

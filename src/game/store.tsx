@@ -190,11 +190,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         st2.chromaticAberration = 0.4;
         audioManager.playFlicker();
 
-        // Random spawn type
-        const spawnTypes: GhostSpawnType[] = ['doorway', 'behind', 'corridor', 'shadows'];
-        const randomSpawn = spawnTypes[Math.floor(Math.random() * spawnTypes.length)];
+        // Weighted spawn — 'behind' and 'doorway' are more common for maximum terror
+        const spawnWeights: [GhostSpawnType, number][] = [
+          ['doorway', 3], ['behind', 4], ['corridor', 2], ['shadows', 1]
+        ];
+        const totalWeight = spawnWeights.reduce((sum, [, w]) => sum + w, 0);
+        let rand = Math.random() * totalWeight;
+        let randomSpawn: GhostSpawnType = 'doorway';
+        for (const [type, weight] of spawnWeights) {
+          rand -= weight;
+          if (rand <= 0) { randomSpawn = type; break; }
+        }
         st2.ghostSpawnType = randomSpawn;
         st2.ghostApproachProgress = 0;
+
+        // Play special sound for behind-spawn
+        if (randomSpawn === 'behind') {
+          audioManager.playGhostBehindReveal();
+        }
 
         const ghostTypes: GhostType[] = ['shadow', 'corridor', 'stalker', 'jumpscare', 'nun'];
         const selectedGhost = st2.wrongCount >= 2
