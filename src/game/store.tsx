@@ -284,7 +284,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           st2.ghostVisible = true;
           st2.ghostState = 'watching';
           st2.roomDarkness = 0.2;
+          audioManager.playGhostArrivalScream();
           audioManager.playGhostSting();
+          audioManager.playGhostPresenceDrone();
           update();
 
           // Brief approach
