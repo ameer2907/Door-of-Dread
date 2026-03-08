@@ -64,8 +64,8 @@ export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoo
 
   return (
     <group>
-      <ambientLight color={config.ambientColor} intensity={config.ambientIntensity} />
-      <RoomLight config={config} flickering={flickering} />
+      <ambientLight color={config.ambientColor} intensity={config.ambientIntensity * (1 - darkness * 0.6)} />
+      <RoomLight config={config} flickering={flickering} darkness={darkness} />
 
       {/* Fill lights */}
       <pointLight position={[-4, 1.5, 0]} color={config.pointLightColor} intensity={0.6} distance={12} />
