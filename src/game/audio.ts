@@ -746,16 +746,27 @@ class AudioManager {
 
   playWrongDoor() {
     if (!this.ctx || !this.masterGain) return;
-    // More dramatic wrong door sound
-    this.playNoise(0.3, 0.18);
-    this.playTone(70, 0.5, 'square', 0.15);
-    this.playTone(75, 0.5, 'sawtooth', 0.1); // dissonant layer
-    // Slam impact
-    this.playTone(25, 0.3, 'sine', 0.2);
+    const t = this.ctx.currentTime;
+    // Heavy slam — violent, final
+    this.playTone(20, 0.8, 'sine', 0.3); // massive sub impact
+    this.playNoise(0.2, 0.25); // impact crack
+    // Dissonant horror sting
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(90, t);
+    osc.frequency.linearRampToValueAtTime(60, t + 1);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 400;
+    osc.connect(f); f.connect(g); g.connect(this.masterGain);
+    osc.start(t); osc.stop(t + 1.5);
+    // Second dissonant tone
     setTimeout(() => {
-      this.playNoise(0.15, 0.1);
-      this.playTone(50, 0.3, 'triangle', 0.08);
-    }, 100);
+      this.playTone(95, 0.8, 'sawtooth', 0.1);
+      this.playNoise(0.3, 0.08);
+    }, 80);
   }
 
   playFlicker() {
