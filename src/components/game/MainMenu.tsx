@@ -418,7 +418,7 @@ export default function MainMenu() {
       />
 
       {/* Content */}
-      <div className={`relative z-10 text-center w-full max-w-3xl mx-auto px-4 space-y-4 sm:space-y-6 transition-all duration-1000 ${
+      <div className={`relative z-10 flex flex-col items-center justify-center text-center w-full max-w-4xl mx-auto px-4 space-y-3 sm:space-y-5 transition-all duration-1000 ${
         introPhase === 'dark' ? 'opacity-0' : 'opacity-100'
       }`}>
         <NeonTitle visibleWords={visibleWords} glitch={glitch} />
