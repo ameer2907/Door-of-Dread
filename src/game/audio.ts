@@ -701,28 +701,24 @@ class AudioManager {
 
   playDoorCreak() {
     if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Slow, heavy creak
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, this.ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(250, this.ctx.currentTime + 0.2);
-    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+    osc.frequency.setValueAtTime(55, t);
+    osc.frequency.linearRampToValueAtTime(160, t + 0.5);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 1.0);
+    osc.frequency.linearRampToValueAtTime(130, t + 1.5);
     const g = this.ctx.createGain();
-    g.gain.value = 0.08;
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.1, t + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
     const filt = this.ctx.createBiquadFilter();
-    filt.type = 'bandpass';
-    filt.frequency.value = 400;
-    filt.Q.value = 3;
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(this.masterGain);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.6);
-    // Hinge squeak
-    setTimeout(() => {
-      if (!this.ctx || !this.masterGain) return;
-      this.playTone(800, 0.05, 'triangle', 0.04);
-    }, 80);
+    filt.type = 'bandpass'; filt.frequency.value = 300; filt.Q.value = 5;
+    osc.connect(filt); filt.connect(g); g.connect(this.masterGain);
+    osc.start(t); osc.stop(t + 2);
+    // Sub weight
+    this.playTone(30, 0.8, 'sine', 0.06);
   }
 
   // --- SFX ---
