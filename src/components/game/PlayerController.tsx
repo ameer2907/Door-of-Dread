@@ -34,8 +34,9 @@ export default function PlayerController() {
   useEffect(() => {
     const gs = getState();
     if (gs.phase === 'intro') {
-      camera.position.set(0, 0.2, 3);
-      camera.rotation.set(-Math.PI / 2, 0, 0);
+      // Start face-down on the floor
+      camera.position.set(0, 0.15, 3);
+      camera.rotation.set(-Math.PI / 2, 0, 0); // looking straight down
       introTime.current = 0;
       introStarted.current = true;
     } else if (gs.portal.phase === 'none') {
