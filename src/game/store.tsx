@@ -323,6 +323,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             update();
           }, roomCfg.ghostLevel >= 2 ? 3500 : 2500);
         } else {
+          // Even with no ghost, play a scare sound on wrong door
+          audioManager.playGhostArrivalScream();
           setTimeout(() => {
             const st3 = stateRef.current;
             st3.flickering = false;

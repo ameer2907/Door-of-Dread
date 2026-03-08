@@ -967,6 +967,98 @@ class AudioManager {
     }, 800);
   }
 
+  // === CONTINUOUS HORROR DRONE — plays while ghost is visible ===
+  playGhostPresenceDrone() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    
+    // Deep rumbling bass drone
+    const drone = this.ctx.createOscillator();
+    drone.type = 'sawtooth';
+    drone.frequency.setValueAtTime(40, t);
+    drone.frequency.linearRampToValueAtTime(55, t + 3);
+    drone.frequency.linearRampToValueAtTime(35, t + 5);
+    const dg = this.ctx.createGain();
+    dg.gain.setValueAtTime(0.001, t);
+    dg.gain.linearRampToValueAtTime(0.2, t + 1);
+    dg.gain.linearRampToValueAtTime(0.15, t + 4);
+    dg.gain.exponentialRampToValueAtTime(0.001, t + 6);
+    const df = this.ctx.createBiquadFilter();
+    df.type = 'lowpass'; df.frequency.value = 250;
+    drone.connect(df); df.connect(dg); dg.connect(this.masterGain);
+    drone.start(t); drone.stop(t + 6.5);
+    
+    // Dissonant beating — two close frequencies create unsettling wavering
+    const beat1 = this.ctx.createOscillator();
+    beat1.type = 'sine';
+    beat1.frequency.value = 92;
+    const beat2 = this.ctx.createOscillator();
+    beat2.type = 'sine';
+    beat2.frequency.value = 97; // 5Hz beat frequency — nauseating
+    const bg = this.ctx.createGain();
+    bg.gain.setValueAtTime(0.001, t);
+    bg.gain.linearRampToValueAtTime(0.12, t + 1.5);
+    bg.gain.exponentialRampToValueAtTime(0.001, t + 5);
+    beat1.connect(bg); beat2.connect(bg); bg.connect(this.masterGain);
+    beat1.start(t); beat2.start(t);
+    beat1.stop(t + 5.5); beat2.stop(t + 5.5);
+    
+    // Whispery wind texture throughout
+    this.playFilteredNoise(5, 0.08, 400, 'bandpass', 3);
+    
+    // Intermittent creepy tones
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      this.playTone(180, 2, 'triangle', 0.06);
+      this.playTone(185, 2, 'triangle', 0.05);
+    }, 1500);
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      this.playFilteredNoise(1.5, 0.06, 1200, 'bandpass', 5);
+    }, 3000);
+  }
+
+  // === LOUD GHOST ARRIVAL SCREAM — instant shock ===
+  playGhostArrivalScream() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    
+    // Instant loud impact — no fade in
+    this.playNoise(0.3, 0.4);
+    this.playTone(25, 1, 'sine', 0.45); // chest-shaking sub
+    
+    // Sharp dissonant stab
+    this.playTone(100, 1, 'square', 0.35);
+    this.playTone(106, 1, 'square', 0.3); // minor 2nd
+    
+    // Shrieking wail
+    const wail = this.ctx.createOscillator();
+    wail.type = 'sawtooth';
+    wail.frequency.setValueAtTime(400, t);
+    wail.frequency.exponentialRampToValueAtTime(1800, t + 0.4);
+    wail.frequency.linearRampToValueAtTime(600, t + 1.5);
+    const wg = this.ctx.createGain();
+    wg.gain.setValueAtTime(0.3, t);
+    wg.gain.exponentialRampToValueAtTime(0.001, t + 2);
+    const wf = this.ctx.createBiquadFilter();
+    wf.type = 'lowpass'; wf.frequency.value = 3000;
+    wail.connect(wf); wf.connect(wg); wg.connect(this.masterGain);
+    wail.start(t); wail.stop(t + 2.5);
+    
+    // Demonic growl undertone
+    const growl = this.ctx.createOscillator();
+    growl.type = 'sawtooth';
+    growl.frequency.setValueAtTime(60, t);
+    growl.frequency.linearRampToValueAtTime(40, t + 1.5);
+    const grg = this.ctx.createGain();
+    grg.gain.setValueAtTime(0.25, t);
+    grg.gain.exponentialRampToValueAtTime(0.001, t + 2);
+    const grf = this.ctx.createBiquadFilter();
+    grf.type = 'lowpass'; grf.frequency.value = 150;
+    growl.connect(grf); grf.connect(grg); grg.connect(this.masterGain);
+    growl.start(t); growl.stop(t + 2.5);
+  }
+
   // Sustained tension drone during ghost approach
   playApproachDrone() {
     if (!this.ctx || !this.masterGain) return;
