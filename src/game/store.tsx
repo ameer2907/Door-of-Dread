@@ -32,6 +32,9 @@ const initialState: GameState = {
   filmGrain: true,
   chromaticAberration: 0,
   portal: { ...defaultPortal },
+  ghostSpawnType: 'doorway',
+  ghostApproachProgress: 0,
+  roomDarkness: 0,
 };
 
 interface GameActions {
