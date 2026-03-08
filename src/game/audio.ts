@@ -1077,40 +1077,61 @@ class AudioManager {
     };
     scheduleWhisper();
 
-    // Sparse eerie piano notes - minor key
+    // Suspenseful piano - frequent, dark minor key with reverb
     const schedulePiano = () => {
-      const delay = 3000 + Math.random() * 5000;
+      const delay = 2000 + Math.random() * 3500;
       const timer = setTimeout(() => {
         if (!this.ctx || !this.masterGain) return;
-        // Minor key notes for darker feel
-        const notes = [103.83, 110, 123.47, 130.81, 146.83, 155.56, 185, 196];
+        // Darker note set: minor, diminished, tritone intervals
+        const notes = [
+          82.41, 87.31, 92.5, 98, 103.83, 110,
+          116.54, 123.47, 130.81, 138.59, 146.83, 155.56,
+          164.81, 174.61, 185, 196, 207.65, 220,
+        ];
         const freq = notes[Math.floor(Math.random() * notes.length)];
         const osc = this.ctx.createOscillator();
         osc.type = 'sine';
         osc.frequency.value = freq;
-        osc.detune.value = (Math.random() - 0.5) * 12;
+        osc.detune.value = (Math.random() - 0.5) * 15;
         const g = this.ctx.createGain();
-        g.gain.value = 0.04; // slightly louder
-        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3.5);
-        // Reverb-like delay
+        g.gain.setValueAtTime(0.055, this.ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 4.5);
+        // Triple delay for haunted reverb
         const dly = this.ctx.createDelay();
-        dly.delayTime.value = 0.5;
+        dly.delayTime.value = 0.4;
         const dly2 = this.ctx.createDelay();
-        dly2.delayTime.value = 1.1;
+        dly2.delayTime.value = 0.9;
+        const dly3 = this.ctx.createDelay();
+        dly3.delayTime.value = 1.5;
         const dlyG = this.ctx.createGain();
-        dlyG.gain.value = 0.02;
+        dlyG.gain.value = 0.03;
         const dly2G = this.ctx.createGain();
-        dly2G.gain.value = 0.01;
+        dly2G.gain.value = 0.018;
+        const dly3G = this.ctx.createGain();
+        dly3G.gain.value = 0.01;
         osc.connect(g);
         g.connect(this.masterGain!);
-        g.connect(dly);
-        dly.connect(dlyG);
-        dlyG.connect(this.masterGain!);
-        g.connect(dly2);
-        dly2.connect(dly2G);
-        dly2G.connect(this.masterGain!);
+        g.connect(dly); dly.connect(dlyG); dlyG.connect(this.masterGain!);
+        g.connect(dly2); dly2.connect(dly2G); dly2G.connect(this.masterGain!);
+        g.connect(dly3); dly3.connect(dly3G); dly3G.connect(this.masterGain!);
         osc.start();
-        osc.stop(this.ctx.currentTime + 4);
+        osc.stop(this.ctx.currentTime + 5);
+        // Occasional dissonant cluster
+        if (Math.random() > 0.55) {
+          setTimeout(() => {
+            if (!this.ctx || !this.masterGain) return;
+            const osc2 = this.ctx.createOscillator();
+            osc2.type = 'sine';
+            osc2.frequency.value = freq * 1.0595; // minor 2nd - very tense
+            const g2 = this.ctx.createGain();
+            g2.gain.setValueAtTime(0.025, this.ctx.currentTime);
+            g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
+            osc2.connect(g2);
+            g2.connect(this.masterGain!);
+            osc2.start();
+            osc2.stop(this.ctx.currentTime + 3.5);
+          }, 150 + Math.random() * 300);
+        }
         schedulePiano();
       }, delay);
       this.menuAmbienceTimers.push(timer);
