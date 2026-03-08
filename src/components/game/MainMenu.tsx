@@ -119,32 +119,78 @@ function ScreenGrain() {
 }
 
 function BloodDripLetter({ char, delay, isDread }: { char: string; delay: number; isDread: boolean }) {
-  const dripCount = isDread ? 2 + Math.floor(Math.random() * 2) : 1 + Math.floor(Math.random() * 2);
+  const dripCount = isDread ? 4 + Math.floor(Math.random() * 3) : 2 + Math.floor(Math.random() * 3);
   return (
     <span className="relative inline-block">
       {char}
+      {/* Blood film on letter bottom */}
+      <span
+        className="absolute left-0 right-0 pointer-events-none"
+        style={{
+          bottom: '0%',
+          height: '35%',
+          background: 'linear-gradient(to top, hsla(0, 90%, 30%, 0.7), transparent)',
+          opacity: 0,
+          animation: `fade-in 1.5s ease-in ${delay + 0.5}s forwards`,
+          borderRadius: '0 0 2px 2px',
+        }}
+      />
+      {/* Multiple drip streams */}
       {Array.from({ length: dripCount }).map((_, i) => {
-        const left = 10 + Math.random() * 80;
-        const h = 12 + Math.random() * (isDread ? 50 : 30);
-        const d = delay + 0.8 + i * 0.6 + Math.random() * 1.5;
-        const dur = 2.5 + Math.random() * 3;
+        const left = 5 + Math.random() * 90;
+        const h = 20 + Math.random() * (isDread ? 90 : 55);
+        const w = 1.5 + Math.random() * 2.5;
+        const d = delay + 1.0 + i * 0.4 + Math.random() * 2;
+        const dur = 3 + Math.random() * 4;
         return (
-          <span
-            key={i}
-            className="absolute pointer-events-none"
-            style={{
-              left: `${left}%`,
-              top: '85%',
-              width: `${1.5 + Math.random() * 1.5}px`,
-              height: `${h}px`,
-              borderRadius: '0 0 50% 50%',
-              background: `linear-gradient(to bottom, hsl(0, 85%, 40%), hsl(0, 90%, 25%), transparent)`,
-              opacity: 0,
-              animation: `title-blood-drip ${dur}s ease-in ${d}s forwards`,
-            }}
-          />
+          <span key={`drip-${i}`} className="absolute pointer-events-none" style={{ left: `${left}%`, top: '90%' }}>
+            {/* Main drip stream */}
+            <span
+              className="absolute"
+              style={{
+                width: `${w}px`,
+                height: `${h}px`,
+                borderRadius: '0 0 50% 50%',
+                background: `linear-gradient(to bottom, hsl(0, 85%, 38%), hsl(0, 90%, 22%), hsl(0, 85%, 15%), transparent)`,
+                opacity: 0,
+                animation: `title-blood-drip ${dur}s ease-in ${d}s forwards`,
+                filter: 'blur(0.3px)',
+              }}
+            />
+            {/* Droplet at the tip */}
+            <span
+              className="absolute rounded-full"
+              style={{
+                width: `${w + 2}px`,
+                height: `${w + 2}px`,
+                left: `-1px`,
+                top: `${h - 2}px`,
+                background: 'radial-gradient(circle, hsl(0, 90%, 35%), hsl(0, 85%, 18%))',
+                boxShadow: '0 2px 6px rgba(150, 0, 0, 0.5)',
+                opacity: 0,
+                animation: `title-blood-drip ${dur}s ease-in ${d + dur * 0.4}s forwards`,
+              }}
+            />
+          </span>
         );
       })}
+      {/* Slow secondary drip that starts later */}
+      {isDread && (
+        <span
+          className="absolute pointer-events-none"
+          style={{
+            left: `${30 + Math.random() * 40}%`,
+            top: '92%',
+            width: '3px',
+            height: `${60 + Math.random() * 50}px`,
+            borderRadius: '0 0 50% 50%',
+            background: `linear-gradient(to bottom, hsl(0, 80%, 35%), hsl(0, 90%, 20%), hsl(0, 80%, 12%), transparent)`,
+            opacity: 0,
+            animation: `title-blood-drip 6s ease-in ${delay + 4 + Math.random() * 3}s forwards`,
+            filter: 'blur(0.5px)',
+          }}
+        />
+      )}
     </span>
   );
 }
