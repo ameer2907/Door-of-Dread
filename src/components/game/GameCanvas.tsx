@@ -7,7 +7,7 @@ import PlayerController from './PlayerController';
 import NextRoomPortal from './NextRoomPortal';
 
 export default function GameCanvas() {
-  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, selectDoor, phase, portal } = useGame();
+  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostSpawnType, ghostApproachProgress, roomDarkness, selectDoor, phase, portal } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
   if (phase === 'menu') return null;
