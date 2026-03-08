@@ -90,6 +90,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       filmGrain: true,
       chromaticAberration: 0,
       portal: { ...defaultPortal },
+      ghostSpawnType: 'doorway' as GhostSpawnType,
+      ghostApproachProgress: 0,
+      roomDarkness: 0,
     });
     update();
   }, [update, s.settings.volume]);
