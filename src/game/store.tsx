@@ -335,6 +335,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       } else {
         // === WRONG DOOR: CINEMATIC HORROR SEQUENCE ===
         audioManager.playWrongDoor();
+        audioManager.stopShepardTone();
+        audioManager.setAudioMixState('safe');
         const roomCfg = ROOM_CONFIGS[st2.currentRoom];
         st2.wrongCount++;
         st2.fear = Math.min(100, st2.fear + 15 * roomCfg.fearMultiplier);
