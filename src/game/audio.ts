@@ -699,6 +699,33 @@ class AudioManager {
     setTimeout(() => this.playTone(550, 0.3, 'sine', 0.08), 150);
   }
 
+  // Wind gust during portal transition
+  playTransitionWind() {
+    if (!this.ctx || !this.masterGain) return;
+    const bufLen = this.ctx.sampleRate * 3;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1);
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.setValueAtTime(100, this.ctx.currentTime);
+    filt.frequency.linearRampToValueAtTime(400, this.ctx.currentTime + 1.5);
+    filt.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 3);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.8);
+    g.gain.linearRampToValueAtTime(0.04, this.ctx.currentTime + 2);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+    // Deep rumble
+    this.playTone(30, 2.5, 'sine', 0.06);
+  }
+
   playChurchBell() {
     this.playTone(220, 2, 'sine', 0.12);
     this.playTone(330, 1.5, 'sine', 0.06);
