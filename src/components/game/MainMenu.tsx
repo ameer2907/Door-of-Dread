@@ -425,10 +425,11 @@ export default function MainMenu() {
 
         {/* Tagline */}
         <p
-          className={`font-body text-[10px] sm:text-xs md:text-sm tracking-[0.2em] sm:tracking-[0.4em] uppercase transition-all duration-1000 px-4 ${
+          className={`font-body tracking-[0.2em] sm:tracking-[0.35em] uppercase transition-all duration-1000 px-4 ${
             showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
           style={{
+            fontSize: 'clamp(0.6rem, 1.2vw, 0.85rem)',
             color: 'hsl(0, 20%, 40%)',
             textShadow: '0 0 8px rgba(150,30,30,0.3)',
           }}
