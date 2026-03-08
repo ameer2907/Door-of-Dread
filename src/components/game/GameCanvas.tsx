@@ -6,7 +6,7 @@ import Ghost3D from './Ghost3D';
 import PlayerController from './PlayerController';
 import NextRoomPortal from './NextRoomPortal';
 
-export default function GameCanvas() {
+export default function GameCanvas() { // v2
   const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostSpawnType, ghostApproachProgress, roomDarkness, selectDoor, phase, portal } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
