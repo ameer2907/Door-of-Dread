@@ -13,31 +13,43 @@ interface Props {
 
 export default function Door3D({ position, index, isCorrect, isOpening, onSelect, roomIndex }: Props) {
   const pivotRef = useRef<THREE.Group>(null);
+  const handleRef = useRef<THREE.Mesh>(null);
   const openAngle = useRef(0);
+  const handleAngle = useRef(0);
   const doorWidth = 1.2;
   const doorHeight = 2.5;
 
-  // Randomize hint type per room+door combo
   const hintType = useMemo(() => {
     const seed = roomIndex * 7 + index * 13;
-    return seed % 3; // 0: light under door, 1: cross mark, 2: scratch marks
+    return seed % 3;
   }, [roomIndex, index]);
 
   useFrame((state, delta) => {
     if (!pivotRef.current) return;
+
     if (isOpening) {
-      // Slow creepy door opening - starts slow, then opens wider
+      // Handle rotation (turns down before door opens)
+      if (handleAngle.current < Math.PI / 4) {
+        handleAngle.current = Math.min(handleAngle.current + delta * 3, Math.PI / 4);
+      }
+
+      // Door opening - slow start, accelerates
       const targetAngle = Math.PI / 2;
       const remaining = targetAngle - openAngle.current;
-      // Ease-in: starts very slow, accelerates
       const speed = 0.3 + (openAngle.current / targetAngle) * 1.5;
       openAngle.current = Math.min(openAngle.current + delta * speed, targetAngle);
-      // Add subtle creaking wobble during opening
       const wobble = Math.sin(state.clock.elapsedTime * 8) * 0.005 * (remaining / targetAngle);
       pivotRef.current.rotation.y = -(openAngle.current + wobble);
     } else {
+      // Close door
+      handleAngle.current = Math.max(handleAngle.current - delta * 4, 0);
       openAngle.current = Math.max(openAngle.current - delta * 4, 0);
       pivotRef.current.rotation.y = -openAngle.current;
+    }
+
+    // Apply handle rotation
+    if (handleRef.current) {
+      handleRef.current.rotation.z = -handleAngle.current;
     }
   });
 
@@ -57,6 +69,14 @@ export default function Door3D({ position, index, isCorrect, isOpening, onSelect
         <meshStandardMaterial color="#3a2510" />
       </mesh>
 
+      {/* Hinge pins */}
+      {[0.3, 1.2, 2.1].map((y, i) => (
+        <mesh key={`hinge-${i}`} position={[-doorWidth / 2 - 0.02, y - doorHeight / 2, 0.04]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.08]} />
+          <meshStandardMaterial color="#665533" metalness={0.7} roughness={0.3} />
+        </mesh>
+      ))}
+
       {/* Door pivot (hinged on left) */}
       <group position={[-doorWidth / 2, -doorHeight / 2, 0]} ref={pivotRef}>
         <mesh
@@ -68,35 +88,52 @@ export default function Door3D({ position, index, isCorrect, isOpening, onSelect
           <meshStandardMaterial color="#5a3a1a" roughness={0.85} />
         </mesh>
 
-        {/* Handle */}
-        <mesh position={[doorWidth - 0.15, doorHeight / 2, 0.12]}>
-          <sphereGeometry args={[0.05, 12, 12]} />
-          <meshStandardMaterial color="#aa8833" metalness={0.8} roughness={0.2} />
-        </mesh>
+        {/* Handle - with rotation */}
+        <group position={[doorWidth - 0.15, doorHeight / 2, 0.1]}>
+          {/* Handle base plate */}
+          <mesh>
+            <boxGeometry args={[0.06, 0.12, 0.02]} />
+            <meshStandardMaterial color="#aa8833" metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Handle lever */}
+          <mesh ref={handleRef} position={[0, 0, 0.03]}>
+            <group>
+              <mesh position={[0.06, 0, 0]}>
+                <boxGeometry args={[0.1, 0.025, 0.025]} />
+                <meshStandardMaterial color="#aa8833" metalness={0.8} roughness={0.2} />
+              </mesh>
+              <mesh position={[0, 0, 0]}>
+                <sphereGeometry args={[0.02, 8, 8]} />
+                <meshStandardMaterial color="#998822" metalness={0.9} roughness={0.1} />
+              </mesh>
+            </group>
+          </mesh>
+        </group>
 
-        {/* Door panels (decorative insets) */}
+        {/* Door panels */}
         {[0.5, 1.5].map((y, i) => (
           <mesh key={i} position={[doorWidth / 2, y, 0.09]}>
             <boxGeometry args={[doorWidth * 0.6, 0.6, 0.01]} />
             <meshStandardMaterial color="#4a2a12" />
           </mesh>
         ))}
+
+        {/* Door edge detail */}
+        <mesh position={[doorWidth, doorHeight / 2, 0.04]}>
+          <boxGeometry args={[0.01, doorHeight, 0.08]} />
+          <meshStandardMaterial color="#4a2a10" />
+        </mesh>
       </group>
 
       {/* Hints for correct door */}
       {isCorrect && (
         <>
-          {/* Light leak under door */}
-          {(hintType === 0 || true) && (
-            <pointLight
-              position={[0, -doorHeight / 2 + 0.1, 0.2]}
-              color="#ffcc66"
-              intensity={0.25}
-              distance={1.5}
-            />
-          )}
-
-          {/* Faint cross scratch (for chapel or general hint) */}
+          <pointLight
+            position={[0, -doorHeight / 2 + 0.1, 0.2]}
+            color="#ffcc66"
+            intensity={0.25}
+            distance={1.5}
+          />
           {hintType === 1 && (
             <group position={[doorWidth / 2 + 0.2, 0.5, 0.08]}>
               <mesh>
@@ -109,8 +146,6 @@ export default function Door3D({ position, index, isCorrect, isOpening, onSelect
               </mesh>
             </group>
           )}
-
-          {/* Floor scratch marks */}
           {hintType === 2 && (
             <mesh position={[0, -doorHeight / 2 + 0.02, 0.5]} rotation={[-Math.PI / 2, 0, 0]}>
               <planeGeometry args={[0.3, 0.8]} />

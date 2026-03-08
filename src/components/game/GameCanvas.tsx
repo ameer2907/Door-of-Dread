@@ -1,15 +1,18 @@
 import { Canvas } from '@react-three/fiber';
 import { useGame } from '@/game/store';
-import { ROOM_CONFIGS } from '@/game/rooms';
+import { ROOM_CONFIGS, DOOR_POSITIONS } from '@/game/rooms';
 import Room3D from './Room3D';
 import Ghost3D from './Ghost3D';
 import PlayerController from './PlayerController';
+import NextRoomPortal from './NextRoomPortal';
 
 export default function GameCanvas() {
-  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostType, selectDoor, phase } = useGame();
+  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, selectDoor, phase, portal } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
   if (phase === 'menu') return null;
+
+  const showNextRoom = portal.phase !== 'none' && portal.nextRoomIndex < ROOM_CONFIGS.length;
 
   return (
     <div className="absolute inset-0">
@@ -20,6 +23,7 @@ export default function GameCanvas() {
       >
         <fog attach="fog" args={[config.fogColor, config.fogNear, config.fogFar]} />
 
+        {/* Current room */}
         <Room3D
           config={config}
           roomIndex={currentRoom}
@@ -28,6 +32,15 @@ export default function GameCanvas() {
           flickering={flickering}
           onSelectDoor={selectDoor}
         />
+
+        {/* Next room visible through the portal door */}
+        {showNextRoom && (
+          <NextRoomPortal
+            nextRoomIndex={portal.nextRoomIndex}
+            doorIndex={portal.doorIndex}
+            portalPhase={portal.phase}
+          />
+        )}
 
         <Ghost3D
           visible={ghostVisible}
