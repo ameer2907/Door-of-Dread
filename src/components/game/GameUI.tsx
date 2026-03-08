@@ -512,7 +512,35 @@ function SettingsMenu() {
 }
 
 function TransitionOverlay() {
-  const { isTransitioning } = useGame();
+  const { isTransitioning, portal } = useGame();
+  
+  // Portal-based fog transition (not abrupt black)
+  const isPortal = portal.phase !== 'none';
+  const portalFog = portal.phase === 'arriving' ? 1 : portal.phase === 'walkThrough' ? 0.3 : 0;
+  
+  if (isPortal) {
+    return (
+      <div
+        className="fixed inset-0 z-40 pointer-events-none transition-opacity duration-500"
+        style={{ opacity: portalFog }}
+      >
+        {/* Fog gradient instead of solid black */}
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.4) 100%)',
+        }} />
+        {/* Subtle entering-room text */}
+        {portal.phase === 'walkThrough' && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-muted-foreground/20 text-xs font-body tracking-[0.5em] animate-pulse">
+              entering...
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback for non-portal transitions (win, etc.)
   return (
     <div
       className={`fixed inset-0 bg-background z-40 pointer-events-none transition-opacity duration-700 ${
