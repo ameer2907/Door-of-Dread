@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGame } from '@/game/store';
 import { audioManager } from '@/game/audio';
 import menuBg from '@/assets/menu-bg.jpg';
@@ -9,108 +9,190 @@ function LightningFlash() {
   const [flash, setFlash] = useState(false);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
-      const delay = 5000 + Math.random() * 12000;
-      return setTimeout(() => {
+      const delay = 4000 + Math.random() * 10000;
+      timer = setTimeout(() => {
         setFlash(true);
         audioManager.playLightningCrack();
-        setTimeout(() => setFlash(false), 80);
+        setTimeout(() => setFlash(false), 70);
         setTimeout(() => {
           setFlash(true);
-          setTimeout(() => setFlash(false), 40);
-        }, 150);
+          setTimeout(() => setFlash(false), 30);
+        }, 130);
+        // Occasional double flash
+        if (Math.random() > 0.6) {
+          setTimeout(() => {
+            setFlash(true);
+            setTimeout(() => setFlash(false), 50);
+          }, 400);
+        }
         schedule();
       }, delay);
     };
-    const t = schedule();
-    return () => clearTimeout(t);
+    schedule();
+    return () => clearTimeout(timer);
   }, []);
 
   if (!flash) return null;
-  return <div className="absolute inset-0 bg-foreground/20 pointer-events-none z-20" />;
+  return (
+    <div className="absolute inset-0 pointer-events-none z-20"
+      style={{
+        background: 'radial-gradient(ellipse at 50% 20%, rgba(200,200,255,0.25) 0%, rgba(150,150,200,0.08) 40%, transparent 70%)',
+      }}
+    />
+  );
 }
 
 function FogLayer() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-      {Array.from({ length: 4 }).map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="absolute w-[200%] h-full opacity-20"
+          className="absolute w-[250%] h-full"
           style={{
-            background: `radial-gradient(ellipse at ${30 + i * 15}% ${50 + i * 10}%, rgba(100,100,120,0.3) 0%, transparent 60%)`,
-            animation: `fog-drift ${20 + i * 5}s ease-in-out infinite alternate`,
-            animationDelay: `${i * 3}s`,
+            background: `radial-gradient(ellipse at ${20 + i * 12}% ${40 + i * 8}%, rgba(80,20,20,0.2) 0%, transparent 55%)`,
+            animation: `fog-drift ${18 + i * 4}s ease-in-out infinite alternate`,
+            animationDelay: `${i * 2.5}s`,
+            opacity: 0.3 + (i % 2) * 0.1,
           }}
         />
       ))}
+      {/* Low crawling fog */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-[40%]"
+        style={{
+          background: 'linear-gradient(to top, rgba(15,5,5,0.9) 0%, rgba(30,10,10,0.4) 40%, transparent 100%)',
+          animation: 'fog-drift 25s ease-in-out infinite alternate',
+        }}
+      />
     </div>
   );
 }
 
-function AnimatedTitle() {
-  const [visibleWords, setVisibleWords] = useState(0);
-  const [glitch, setGlitch] = useState(false);
+function FloatingEmbers() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[2]">
+      {Array.from({ length: 35 }).map((_, i) => {
+        const size = 1 + Math.random() * 3;
+        const isEmber = Math.random() > 0.5;
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: `${size}px`,
+              height: `${size}px`,
+              left: `${Math.random() * 100}%`,
+              top: `${60 + Math.random() * 40}%`,
+              backgroundColor: isEmber
+                ? `rgba(255, ${60 + Math.random() * 80}, 0, ${0.4 + Math.random() * 0.4})`
+                : `rgba(200, 180, 160, ${0.1 + Math.random() * 0.15})`,
+              animation: `float-particle ${6 + Math.random() * 14}s linear infinite`,
+              animationDelay: `${Math.random() * 10}s`,
+              boxShadow: isEmber ? `0 0 ${4 + Math.random() * 6}px rgba(255, 80, 0, 0.6)` : 'none',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function ScreenGrain() {
+  const [seed, setSeed] = useState(0);
 
   useEffect(() => {
-    audioManager.init();
-    audioManager.resume();
-    audioManager.playTitleIntro();
-
-    const timers: NodeJS.Timeout[] = [];
-    TITLE_WORDS.forEach((_, i) => {
-      timers.push(setTimeout(() => {
-        setVisibleWords(i + 1);
-        audioManager.playTitleHit(i);
-      }, 800 + i * 1200));
-    });
-
-    timers.push(setTimeout(() => {
-      setGlitch(true);
-      setTimeout(() => setGlitch(false), 300);
-    }, 800 + TITLE_WORDS.length * 1200 + 500));
-
-    return () => timers.forEach(clearTimeout);
+    const interval = setInterval(() => setSeed(Math.random()), 60);
+    return () => clearInterval(interval);
   }, []);
 
   return (
+    <div
+      className="absolute inset-0 pointer-events-none z-[3] mix-blend-overlay"
+      style={{
+        opacity: 0.06,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' seed='${Math.floor(seed * 100)}' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")`,
+        backgroundSize: '128px 128px',
+      }}
+    />
+  );
+}
+
+function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boolean }) {
+  return (
     <div className="relative">
-      {TITLE_WORDS.map((word, i) => (
-        <div
-          key={word}
-          className={`transition-all duration-700 ${
-            i < visibleWords
-              ? 'opacity-100 translate-y-0 scale-100'
-              : 'opacity-0 translate-y-8 scale-110'
-          }`}
-          style={{ transitionDelay: `${i * 100}ms` }}
-        >
-          <h1
-            className={`font-horror tracking-widest select-none ${
-              word === 'DREAD'
-                ? 'text-8xl md:text-[10rem] text-foreground -mt-4'
-                : word === 'OF'
-                ? 'text-4xl md:text-6xl text-primary/60 -mt-2'
-                : 'text-7xl md:text-9xl text-primary'
-            } ${glitch ? 'animate-title-glitch' : ''}`}
-            style={{
-              textShadow:
-                word === 'DREAD'
-                  ? '0 0 20px rgba(255,255,255,0.15), 0 0 60px rgba(255,50,50,0.2), 0 0 120px rgba(255,0,0,0.1)'
-                  : '0 0 40px hsl(0, 65%, 42%), 0 0 80px hsl(0, 65%, 30%), 0 0 120px hsl(0, 65%, 20%)',
-              letterSpacing: word === 'DREAD' ? '0.3em' : '0.15em',
-            }}
+      {TITLE_WORDS.map((word, i) => {
+        const isVisible = i < visibleWords;
+        const isDread = word === 'DREAD';
+        const isOf = word === 'OF';
+
+        return (
+          <div
+            key={word}
+            className={`transition-all duration-1000 ${
+              isVisible
+                ? 'opacity-100 translate-y-0 scale-100'
+                : 'opacity-0 translate-y-12 scale-110'
+            }`}
+            style={{ transitionDelay: `${i * 150}ms` }}
           >
-            {word}
-          </h1>
-        </div>
-      ))}
+            <h1
+              className={`select-none ${glitch ? 'animate-title-glitch' : ''} ${
+                isDread
+                  ? 'text-8xl md:text-[11rem] -mt-4 md:-mt-6'
+                  : isOf
+                  ? 'text-3xl md:text-5xl -mt-1'
+                  : 'text-7xl md:text-9xl'
+              }`}
+              style={{
+                fontFamily: isDread ? "'Nosifer', cursive" : "'Creepster', cursive",
+                color: isDread
+                  ? 'hsl(0, 85%, 50%)'
+                  : isOf
+                  ? 'hsl(0, 40%, 40%)'
+                  : 'hsl(0, 70%, 45%)',
+                textShadow: isDread
+                  ? `0 0 10px rgba(255,30,30,0.9),
+                     0 0 30px rgba(255,30,30,0.6),
+                     0 0 60px rgba(255,0,0,0.4),
+                     0 0 100px rgba(200,0,0,0.3),
+                     0 0 150px rgba(150,0,0,0.15),
+                     0 2px 4px rgba(0,0,0,0.9)`
+                  : isOf
+                  ? '0 0 15px rgba(200,50,50,0.3), 0 2px 4px rgba(0,0,0,0.8)'
+                  : `0 0 20px rgba(255,50,50,0.7),
+                     0 0 50px rgba(255,20,20,0.4),
+                     0 0 90px rgba(200,0,0,0.2),
+                     0 2px 4px rgba(0,0,0,0.9)`,
+                letterSpacing: isDread ? '0.25em' : isOf ? '0.6em' : '0.15em',
+                animation: isVisible
+                  ? isDread
+                    ? 'neon-flicker 4s ease-in-out infinite, neon-pulse 2s ease-in-out infinite'
+                    : 'neon-pulse 3s ease-in-out infinite'
+                  : 'none',
+                animationDelay: `${i * 0.5}s`,
+              }}
+            >
+              {word}
+            </h1>
+          </div>
+        );
+      })}
 
       {/* Subtitle */}
-      <div className={`mt-4 transition-all duration-1000 delay-500 ${
-        visibleWords >= 3 ? 'opacity-60' : 'opacity-0'
+      <div className={`mt-6 transition-all duration-1500 delay-700 ${
+        visibleWords >= 3 ? 'opacity-100' : 'opacity-0'
       }`}>
-        <p className="text-muted-foreground/50 font-body text-xs tracking-[0.8em] uppercase">
+        <p
+          className="text-xs tracking-[1em] uppercase"
+          style={{
+            color: 'hsl(0, 30%, 35%)',
+            textShadow: '0 0 10px rgba(200,50,50,0.3)',
+            animation: visibleWords >= 3 ? 'flicker-text 5s infinite 2s' : 'none',
+          }}
+        >
           A Horror Experience
         </p>
       </div>
@@ -120,102 +202,238 @@ function AnimatedTitle() {
 
 export default function MainMenu() {
   const { phase, startGame, setPhase } = useGame();
+  const [introPhase, setIntroPhase] = useState<'dark' | 'ambient' | 'title' | 'ready'>('dark');
+  const [visibleWords, setVisibleWords] = useState(0);
+  const [glitch, setGlitch] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [entering, setEntering] = useState(false);
+  const audioStarted = useRef(false);
 
   useEffect(() => {
-    if (phase === 'menu') {
-      setShowButtons(false);
-      setShowControls(false);
-      const t1 = setTimeout(() => setShowButtons(true), 800 + TITLE_WORDS.length * 1200 + 800);
-      const t2 = setTimeout(() => setShowControls(true), 800 + TITLE_WORDS.length * 1200 + 1400);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
-    }
+    if (phase !== 'menu') return;
+
+    setIntroPhase('dark');
+    setVisibleWords(0);
+    setShowButtons(false);
+    setShowControls(false);
+    setGlitch(false);
+    setEntering(false);
+    audioStarted.current = false;
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    // Phase 1: Dark screen with wind (0-1.5s)
+    timers.push(setTimeout(() => {
+      setIntroPhase('ambient');
+      if (!audioStarted.current) {
+        audioStarted.current = true;
+        audioManager.init();
+        audioManager.resume();
+        audioManager.playTitleIntro();
+        audioManager.playMenuAmbience();
+      }
+    }, 500));
+
+    // Phase 2: Background fades in (1.5-3s)
+    timers.push(setTimeout(() => {
+      setIntroPhase('title');
+    }, 1800));
+
+    // Phase 3: Title words appear (3s+)
+    TITLE_WORDS.forEach((_, i) => {
+      timers.push(setTimeout(() => {
+        setVisibleWords(i + 1);
+        audioManager.playTitleHit(i);
+      }, 3000 + i * 1400));
+    });
+
+    // Glitch after all words
+    const glitchTime = 3000 + TITLE_WORDS.length * 1400 + 600;
+    timers.push(setTimeout(() => {
+      setGlitch(true);
+      setTimeout(() => setGlitch(false), 300);
+    }, glitchTime));
+
+    // Show buttons
+    timers.push(setTimeout(() => {
+      setIntroPhase('ready');
+      setShowButtons(true);
+    }, glitchTime + 800));
+
+    timers.push(setTimeout(() => setShowControls(true), glitchTime + 1400));
+
+    return () => timers.forEach(clearTimeout);
   }, [phase]);
+
+  const handleEnter = useCallback(() => {
+    if (entering) return;
+    setEntering(true);
+    audioManager.playHorrorDoorOpen();
+
+    // Transition out
+    setTimeout(() => {
+      audioManager.stopMenuAmbience();
+      startGame();
+    }, 1200);
+  }, [entering, startGame]);
 
   if (phase !== 'menu') return null;
 
+  const bgOpacity = introPhase === 'dark' ? 0 : introPhase === 'ambient' ? 0.3 : 1;
+  const screenDark = entering ? 1 : introPhase === 'dark' ? 1 : 0;
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
-      {/* Background */}
+      {/* Background image */}
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center transition-opacity duration-[2500ms]"
         style={{
           backgroundImage: `url(${menuBg})`,
-          filter: 'brightness(0.2) saturate(0.3) contrast(1.2)',
-          animation: 'menu-bg-pulse 8s ease-in-out infinite',
+          filter: 'brightness(0.15) saturate(0.2) contrast(1.3) hue-rotate(-10deg)',
+          opacity: bgOpacity,
+          animation: bgOpacity > 0 ? 'menu-bg-breathe 10s ease-in-out infinite' : 'none',
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
+
+      {/* Red ambient light overlay */}
+      <div
+        className="absolute inset-0 transition-opacity duration-[2000ms]"
+        style={{
+          opacity: bgOpacity * 0.6,
+          background: `
+            radial-gradient(ellipse at 30% 70%, rgba(120,10,10,0.25) 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 30%, rgba(100,5,5,0.2) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 100%, rgba(80,0,0,0.35) 0%, transparent 40%)
+          `,
+        }}
+      />
+
+      {/* Gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0" style={{
-        background: 'radial-gradient(circle at 50% 40%, transparent 30%, rgba(0,0,0,0.85) 100%)',
+        background: 'radial-gradient(circle at 50% 40%, transparent 25%, rgba(0,0,0,0.9) 100%)',
       }} />
 
-      {/* Fog effect */}
+      {/* Atmospheric layers */}
       <FogLayer />
-
-      {/* Lightning */}
       <LightningFlash />
-
-      {/* Floating particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-[2]">
-        {Array.from({ length: 25 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-primary/15"
-            style={{
-              width: `${1 + Math.random() * 3}px`,
-              height: `${1 + Math.random() * 3}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float-particle ${8 + Math.random() * 12}s linear infinite`,
-              animationDelay: `${Math.random() * 8}s`,
-            }}
-          />
-        ))}
-      </div>
+      <FloatingEmbers />
+      <ScreenGrain />
 
       {/* Scan lines */}
-      <div className="absolute inset-0 pointer-events-none z-[3]" style={{
-        background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)',
+      <div className="absolute inset-0 pointer-events-none z-[4]" style={{
+        background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.03) 3px, rgba(0,0,0,0.03) 6px)',
+        opacity: 0.5,
       }} />
 
-      {/* Content */}
-      <div className="relative z-10 text-center space-y-6">
-        <AnimatedTitle />
+      {/* Flickering red rim light */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[5]"
+        style={{
+          boxShadow: 'inset 0 0 200px rgba(80,0,0,0.4), inset 0 0 80px rgba(40,0,0,0.6)',
+          animation: 'red-rim-flicker 6s ease-in-out infinite',
+        }}
+      />
 
+      {/* Content */}
+      <div className={`relative z-10 text-center space-y-6 transition-all duration-1000 ${
+        introPhase === 'dark' ? 'opacity-0' : 'opacity-100'
+      }`}>
+        <NeonTitle visibleWords={visibleWords} glitch={glitch} />
+
+        {/* Tagline */}
         <p
-          className={`text-muted-foreground font-body text-sm tracking-[0.4em] uppercase transition-all duration-1000 ${
-            showButtons ? 'opacity-70 translate-y-0' : 'opacity-0 translate-y-4'
+          className={`font-body text-sm tracking-[0.4em] uppercase transition-all duration-1000 ${
+            showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
+          style={{
+            color: 'hsl(0, 20%, 40%)',
+            textShadow: '0 0 8px rgba(150,30,30,0.3)',
+          }}
         >
           Choose wisely. The wrong door could be your last.
         </p>
 
         {/* Buttons */}
         <div
-          className={`space-y-3 pt-4 transition-all duration-700 ${
-            showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+          className={`space-y-4 pt-6 transition-all duration-700 ${
+            showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
           <button
-            onClick={startGame}
-            className="group block w-64 mx-auto py-4 bg-primary/90 text-primary-foreground
-                       rounded-lg font-horror text-2xl tracking-wider
-                       transition-all duration-300 hover:scale-105 hover:bg-primary
-                       hover:shadow-[0_0_40px_rgba(200,50,50,0.5),0_0_80px_rgba(200,50,50,0.2)]
-                       border border-primary/30 hover:border-primary/60 relative overflow-hidden"
+            onClick={handleEnter}
+            disabled={entering}
+            className="group block w-72 mx-auto py-5 rounded-lg relative overflow-hidden
+                       transition-all duration-500 hover:scale-105 active:scale-100
+                       border-2"
+            style={{
+              borderColor: entering ? 'hsl(0, 70%, 25%)' : 'hsl(0, 70%, 35%)',
+              backgroundColor: entering ? 'hsla(0, 80%, 15%, 0.8)' : 'hsla(0, 80%, 20%, 0.6)',
+              boxShadow: `0 0 20px rgba(200,30,30,0.3), 
+                          0 0 60px rgba(150,0,0,0.15),
+                          inset 0 0 20px rgba(200,30,30,0.1)`,
+              animation: !entering ? 'enter-btn-pulse 2.5s ease-in-out infinite' : 'none',
+            }}
+            onMouseEnter={(e) => {
+              if (!entering) {
+                e.currentTarget.style.boxShadow = `0 0 40px rgba(255,40,40,0.5), 
+                  0 0 80px rgba(200,0,0,0.3), 
+                  0 0 120px rgba(150,0,0,0.15),
+                  inset 0 0 30px rgba(255,40,40,0.15)`;
+                e.currentTarget.style.borderColor = 'hsl(0, 80%, 50%)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!entering) {
+                e.currentTarget.style.boxShadow = `0 0 20px rgba(200,30,30,0.3), 
+                  0 0 60px rgba(150,0,0,0.15),
+                  inset 0 0 20px rgba(200,30,30,0.1)`;
+                e.currentTarget.style.borderColor = 'hsl(0, 70%, 35%)';
+              }
+            }}
           >
-            <span className="relative z-10">ENTER</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary-foreground/5 to-transparent
-                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <span
+              className="relative z-10 text-3xl tracking-[0.4em]"
+              style={{
+                fontFamily: "'Creepster', cursive",
+                color: entering ? 'hsl(0, 60%, 35%)' : 'hsl(0, 70%, 60%)',
+                textShadow: `0 0 15px rgba(255,50,50,0.8), 0 0 30px rgba(255,30,30,0.4)`,
+              }}
+            >
+              {entering ? 'ENTERING...' : 'ENTER'}
+            </span>
+            {/* Shine sweep */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent
+                            translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            {/* Bottom glow line */}
+            <div className="absolute bottom-0 left-[10%] right-[10%] h-[2px] rounded-full"
+              style={{
+                background: 'linear-gradient(to right, transparent, hsl(0, 80%, 45%), transparent)',
+                boxShadow: '0 0 10px rgba(255,40,40,0.5)',
+                animation: 'glow-line-pulse 2s ease-in-out infinite',
+              }}
+            />
           </button>
+
           <button
             onClick={() => setPhase('settings')}
-            className="block w-64 mx-auto py-3 bg-secondary/60 text-foreground/80
-                       rounded-lg font-body text-sm tracking-wider transition-all duration-300
-                       hover:bg-secondary hover:text-foreground border border-border/30
-                       hover:border-border/60 backdrop-blur-sm"
+            className="block w-72 mx-auto py-3 rounded-lg font-body text-sm tracking-[0.3em] uppercase
+                       transition-all duration-300 border backdrop-blur-sm
+                       hover:scale-[1.02]"
+            style={{
+              borderColor: 'hsl(0, 0%, 18%)',
+              backgroundColor: 'hsla(0, 0%, 8%, 0.6)',
+              color: 'hsl(0, 0%, 45%)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'hsl(0, 40%, 30%)';
+              e.currentTarget.style.color = 'hsl(0, 20%, 60%)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'hsl(0, 0%, 18%)';
+              e.currentTarget.style.color = 'hsl(0, 0%, 45%)';
+            }}
           >
             Settings
           </button>
@@ -223,21 +441,29 @@ export default function MainMenu() {
 
         {/* Controls info */}
         <div
-          className={`pt-6 space-y-1.5 transition-all duration-700 ${
+          className={`pt-8 space-y-2 transition-all duration-700 ${
             showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
         >
-          <p className="text-muted-foreground/40 text-xs font-body tracking-wider">
+          <p className="text-xs font-body tracking-[0.2em]"
+             style={{ color: 'hsl(0, 0%, 25%)' }}>
             WASD / Arrow Keys to move · Mouse to look · E to interact
           </p>
-          <p className="text-muted-foreground/40 text-xs font-body tracking-wider">
+          <p className="text-xs font-body tracking-[0.2em]"
+             style={{ color: 'hsl(0, 0%, 25%)' }}>
             ESC to pause · SHIFT to sprint · Touch joystick on mobile
           </p>
         </div>
       </div>
 
+      {/* Dark overlay for intro/exit transitions */}
+      <div
+        className="absolute inset-0 bg-black pointer-events-none z-30 transition-opacity duration-[1500ms]"
+        style={{ opacity: screenDark }}
+      />
+
       {/* Bottom vignette */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none z-[4]" />
+      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent pointer-events-none z-[6]" />
     </div>
   );
 }
