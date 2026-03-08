@@ -415,65 +415,89 @@ class AudioManager {
 
   private _startPianoLoop() {
     if (!this.ctx || !this.musicGain) return;
-    // Dark minor key / diminished notes for maximum tension
-    const notes = [
-      82.41, 87.31, 98, 103.83, 110, 116.54, // low register - dark
-      123.47, 130.81, 138.59, 146.83, 155.56, // mid register - dissonant
-      164.81, 174.61, 185, 196, 207.65,        // upper mid
+    // Slow, deliberate horror piano — think "The Shining" / "Insidious"
+    // Minor 2nds, tritones, diminished chords — deeply unsettling intervals
+    const darkPhrases = [
+      // Each phrase is [note, delayMs, duration, volume] — slow, deliberate
+      [65.41, 0, 6, 0.07],    // C2 — deep, ominous
+      [69.30, 1800, 5, 0.05], // C#2 — minor 2nd = maximum dread
+      [65.41, 3800, 4, 0.04], // repeat root — lingering
+      
+      [87.31, 0, 6, 0.065],   // F2
+      [92.50, 2200, 5, 0.05], // F#2 — tritone region
+      [82.41, 4500, 4, 0.04], // E2 — descending = despair
+      
+      [110, 0, 6, 0.06],      // A2
+      [116.54, 1500, 5, 0.055],// Bb2 — minor 2nd
+      [103.83, 3500, 5, 0.04], // Ab2 — chromatic descent
+      
+      [73.42, 0, 7, 0.07],    // D2 — very low, ominous
+      [69.30, 2500, 5, 0.05], // C#2 — half step down = sinister
+      [77.78, 5000, 4, 0.04], // Eb2 — minor 3rd above root
+      
+      [55.00, 0, 8, 0.08],    // A1 — extremely low, dread
+      [58.27, 3000, 6, 0.06], // Bb1 — minor 2nd in bass = terrifying
     ];
-    const playNote = () => {
+    
+    let phraseIdx = 0;
+    
+    const playPhrase = () => {
       if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
-      const freq = notes[Math.floor(Math.random() * notes.length)];
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      osc.detune.value = (Math.random() - 0.5) * 20;
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0.06, this.ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 5);
-      // Reverb delays for haunted piano feel
-      const delay1 = this.ctx.createDelay();
-      delay1.delayTime.value = 0.35;
-      const d1g = this.ctx.createGain();
-      d1g.gain.value = 0.035;
-      const delay2 = this.ctx.createDelay();
-      delay2.delayTime.value = 0.8;
-      const d2g = this.ctx.createGain();
-      d2g.gain.value = 0.02;
-      const delay3 = this.ctx.createDelay();
-      delay3.delayTime.value = 1.4;
-      const d3g = this.ctx.createGain();
-      d3g.gain.value = 0.012;
-      osc.connect(g);
-      g.connect(this.musicGain!);
-      g.connect(delay1); delay1.connect(d1g); d1g.connect(this.musicGain!);
-      g.connect(delay2); delay2.connect(d2g); d2g.connect(this.musicGain!);
-      g.connect(delay3); delay3.connect(d3g); d3g.connect(this.musicGain!);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 5.5);
-      // Occasional dissonant double-note (minor 2nd)
-      if (Math.random() > 0.6) {
+      const startIdx = phraseIdx * 3;
+      const phrase = darkPhrases.slice(startIdx, startIdx + 3);
+      if (phrase.length === 0) { phraseIdx = 0; playPhrase(); return; }
+      phraseIdx++;
+      if (phraseIdx * 3 >= darkPhrases.length) phraseIdx = 0;
+      
+      phrase.forEach(([freq, delayMs, dur, vol]) => {
         setTimeout(() => {
           if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
-          const osc2 = this.ctx.createOscillator();
-          osc2.type = 'sine';
-          osc2.frequency.value = freq * 1.0595; // semitone up = dissonant
-          const g2 = this.ctx.createGain();
-          g2.gain.setValueAtTime(0.03, this.ctx.currentTime);
-          g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
-          osc2.connect(g2);
-          g2.connect(this.musicGain!);
-          osc2.start();
-          osc2.stop(this.ctx.currentTime + 3.5);
-        }, 200 + Math.random() * 400);
-      }
+          const t = this.ctx.currentTime;
+          // Main note with slow attack — piano hammer feel
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          osc.detune.value = (Math.random() - 0.5) * 8; // subtle detuning
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(vol, t + 0.02); // sharp attack
+          g.gain.exponentialRampToValueAtTime(vol * 0.6, t + 0.5); // sustain decay
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur); // long tail
+          
+          // Sympathetic string resonance (2nd harmonic, very quiet)
+          const harm = this.ctx!.createOscillator();
+          harm.type = 'sine';
+          harm.frequency.value = freq * 2;
+          const hg = this.ctx!.createGain();
+          hg.gain.setValueAtTime(vol * 0.15, t);
+          hg.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.7);
+          
+          // Long reverb tail — cavernous, haunted hall
+          const dly1 = this.ctx!.createDelay(); dly1.delayTime.value = 0.45;
+          const dly1g = this.ctx!.createGain(); dly1g.gain.value = 0.04;
+          const dly2 = this.ctx!.createDelay(); dly2.delayTime.value = 1.1;
+          const dly2g = this.ctx!.createGain(); dly2g.gain.value = 0.025;
+          const dly3 = this.ctx!.createDelay(); dly3.delayTime.value = 2.0;
+          const dly3g = this.ctx!.createGain(); dly3g.gain.value = 0.015;
+          
+          osc.connect(g); g.connect(this.musicGain!);
+          g.connect(dly1); dly1.connect(dly1g); dly1g.connect(this.musicGain!);
+          g.connect(dly2); dly2.connect(dly2g); dly2g.connect(this.musicGain!);
+          g.connect(dly3); dly3.connect(dly3g); dly3g.connect(this.musicGain!);
+          harm.connect(hg); hg.connect(this.musicGain!);
+          
+          osc.start(t); osc.stop(t + dur + 0.5);
+          harm.start(t); harm.stop(t + dur * 0.7 + 0.5);
+        }, delayMs);
+      });
     };
+    
     const scheduleNext = () => {
       if (!this.musicPlaying) return;
-      const d = 2500 + Math.random() * 3500; // more frequent
-      setTimeout(() => { playNote(); scheduleNext(); }, d);
+      const d = 6000 + Math.random() * 4000; // slower pacing — more dread
+      setTimeout(() => { playPhrase(); scheduleNext(); }, d);
     };
-    setTimeout(() => { playNote(); scheduleNext(); }, 1500);
+    setTimeout(() => { playPhrase(); scheduleNext(); }, 2000);
   }
 
   stopMusic() {
@@ -589,109 +613,112 @@ class AudioManager {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
 
-    // Multi-layered door creak - slow, long, realistic
-    // Layer 1: Main creak (wood stress)
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(60, t);
-    osc.frequency.linearRampToValueAtTime(180, t + 0.6);
-    osc.frequency.linearRampToValueAtTime(100, t + 1.2);
-    osc.frequency.linearRampToValueAtTime(220, t + 1.8);
-    osc.frequency.linearRampToValueAtTime(80, t + 2.5);
-    osc.frequency.linearRampToValueAtTime(150, t + 3.0);
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.001, t);
-    g.gain.linearRampToValueAtTime(0.12, t + 0.3);
-    g.gain.linearRampToValueAtTime(0.08, t + 1.5);
-    g.gain.linearRampToValueAtTime(0.1, t + 2.0);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 3.2);
-    const filt = this.ctx.createBiquadFilter();
-    filt.type = 'bandpass';
-    filt.frequency.value = 350;
-    filt.Q.value = 4;
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(this.masterGain);
-    osc.start();
-    osc.stop(t + 3.5);
+    // Layer 1: Heavy iron/wood creak — slow, agonizing groan
+    const creak1 = this.ctx.createOscillator();
+    creak1.type = 'sawtooth';
+    creak1.frequency.setValueAtTime(45, t);
+    creak1.frequency.linearRampToValueAtTime(120, t + 1.0);
+    creak1.frequency.linearRampToValueAtTime(65, t + 2.0);
+    creak1.frequency.linearRampToValueAtTime(180, t + 3.0);
+    creak1.frequency.exponentialRampToValueAtTime(50, t + 4.0);
+    const cg1 = this.ctx.createGain();
+    cg1.gain.setValueAtTime(0.001, t);
+    cg1.gain.linearRampToValueAtTime(0.14, t + 0.5);
+    cg1.gain.linearRampToValueAtTime(0.09, t + 2.0);
+    cg1.gain.linearRampToValueAtTime(0.12, t + 3.0);
+    cg1.gain.exponentialRampToValueAtTime(0.001, t + 4.5);
+    const cf1 = this.ctx.createBiquadFilter();
+    cf1.type = 'bandpass'; cf1.frequency.value = 280; cf1.Q.value = 5;
+    creak1.connect(cf1); cf1.connect(cg1); cg1.connect(this.masterGain);
+    creak1.start(t); creak1.stop(t + 4.5);
 
-    // Layer 2: High-pitched hinge squeal
-    const hingeOsc = this.ctx.createOscillator();
-    hingeOsc.type = 'triangle';
-    hingeOsc.frequency.setValueAtTime(400, t + 0.2);
-    hingeOsc.frequency.exponentialRampToValueAtTime(200, t + 0.8);
-    hingeOsc.frequency.linearRampToValueAtTime(500, t + 1.4);
-    hingeOsc.frequency.exponentialRampToValueAtTime(180, t + 2.0);
-    const hingeG = this.ctx.createGain();
-    hingeG.gain.setValueAtTime(0.001, t);
-    hingeG.gain.linearRampToValueAtTime(0.06, t + 0.3);
-    hingeG.gain.linearRampToValueAtTime(0.03, t + 1.0);
-    hingeG.gain.linearRampToValueAtTime(0.05, t + 1.6);
-    hingeG.gain.exponentialRampToValueAtTime(0.001, t + 2.3);
-    const hingeFilt = this.ctx.createBiquadFilter();
-    hingeFilt.type = 'bandpass';
-    hingeFilt.frequency.value = 600;
-    hingeFilt.Q.value = 6;
-    hingeOsc.connect(hingeFilt);
-    hingeFilt.connect(hingeG);
-    hingeG.connect(this.masterGain);
-    hingeOsc.start(t + 0.15);
-    hingeOsc.stop(t + 2.5);
+    // Layer 2: High rusty hinge shriek — painful, metallic
+    const hinge = this.ctx.createOscillator();
+    hinge.type = 'square';
+    hinge.frequency.setValueAtTime(600, t + 0.3);
+    hinge.frequency.exponentialRampToValueAtTime(250, t + 1.2);
+    hinge.frequency.linearRampToValueAtTime(700, t + 2.2);
+    hinge.frequency.exponentialRampToValueAtTime(200, t + 3.5);
+    const hg = this.ctx.createGain();
+    hg.gain.setValueAtTime(0.001, t);
+    hg.gain.linearRampToValueAtTime(0.04, t + 0.5);
+    hg.gain.linearRampToValueAtTime(0.02, t + 1.5);
+    hg.gain.linearRampToValueAtTime(0.035, t + 2.5);
+    hg.gain.exponentialRampToValueAtTime(0.001, t + 3.8);
+    const hf = this.ctx.createBiquadFilter();
+    hf.type = 'bandpass'; hf.frequency.value = 800; hf.Q.value = 8;
+    hinge.connect(hf); hf.connect(hg); hg.connect(this.masterGain);
+    hinge.start(t + 0.2); hinge.stop(t + 4.0);
 
-    // Layer 3: Wood groaning/stress
+    // Layer 3: Deep wood stress groan — subsonic weight
+    const wood = this.ctx.createOscillator();
+    wood.type = 'triangle';
+    wood.frequency.setValueAtTime(35, t);
+    wood.frequency.linearRampToValueAtTime(60, t + 1.5);
+    wood.frequency.linearRampToValueAtTime(30, t + 3.0);
+    const wg = this.ctx.createGain();
+    wg.gain.setValueAtTime(0.001, t);
+    wg.gain.linearRampToValueAtTime(0.08, t + 0.8);
+    wg.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+    wood.connect(wg); wg.connect(this.masterGain);
+    wood.start(t); wood.stop(t + 3.5);
+
+    // Layer 4: Heavy latch clunk — mechanical, cold
+    this.playTone(80, 0.06, 'square', 0.12);
+    setTimeout(() => this.playTone(55, 0.04, 'square', 0.08), 40);
+
+    // Layer 5: Cold air rush through opening
+    setTimeout(() => {
+      this.playFilteredNoise(3, 0.06, 350, 'bandpass', 2);
+    }, 800);
+
+    // Layer 6: Sub bass slam feel
+    const sub = this.ctx.createOscillator();
+    sub.type = 'sine';
+    sub.frequency.value = 22;
+    const sg = this.ctx.createGain();
+    sg.gain.setValueAtTime(0.001, t);
+    sg.gain.linearRampToValueAtTime(0.12, t + 0.1);
+    sg.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
+    sub.connect(sg); sg.connect(this.masterGain);
+    sub.start(t); sub.stop(t + 2.0);
+
+    // Layer 7: Eerie tonal whisper as door opens
     setTimeout(() => {
       if (!this.ctx || !this.masterGain) return;
-      const woodOsc = this.ctx.createOscillator();
-      woodOsc.type = 'triangle';
-      woodOsc.frequency.setValueAtTime(50, this.ctx.currentTime);
-      woodOsc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 0.8);
-      woodOsc.frequency.linearRampToValueAtTime(45, this.ctx.currentTime + 1.2);
-      const woodG = this.ctx.createGain();
-      woodG.gain.setValueAtTime(0.06, this.ctx.currentTime);
-      woodG.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.5);
-      woodOsc.connect(woodG);
-      woodG.connect(this.masterGain);
-      woodOsc.start();
-      woodOsc.stop(this.ctx.currentTime + 1.5);
-    }, 400);
-
-    // Layer 4: Latch click at start
-    this.playTone(1200, 0.03, 'square', 0.08);
-    setTimeout(() => this.playTone(800, 0.02, 'square', 0.05), 50);
-
-    // Layer 5: Air/wind whistle through gap
-    setTimeout(() => {
-      this.playFilteredNoise(2.5, 0.04, 400, 'bandpass', 2);
-    }, 600);
-
-    // Deep sub thud
-    this.playTone(30, 1.2, 'sine', 0.08);
+      const eerieOsc = this.ctx.createOscillator();
+      eerieOsc.type = 'sine';
+      eerieOsc.frequency.setValueAtTime(220, this.ctx.currentTime);
+      eerieOsc.frequency.linearRampToValueAtTime(185, this.ctx.currentTime + 2);
+      const eg = this.ctx.createGain();
+      eg.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      eg.gain.linearRampToValueAtTime(0.025, this.ctx.currentTime + 0.8);
+      eg.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2.5);
+      eerieOsc.connect(eg); eg.connect(this.masterGain!);
+      eerieOsc.start(); eerieOsc.stop(this.ctx.currentTime + 3);
+    }, 500);
   }
 
   playDoorCreak() {
     if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Slow, heavy creak
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(120, this.ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(250, this.ctx.currentTime + 0.2);
-    osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.5);
+    osc.frequency.setValueAtTime(55, t);
+    osc.frequency.linearRampToValueAtTime(160, t + 0.5);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 1.0);
+    osc.frequency.linearRampToValueAtTime(130, t + 1.5);
     const g = this.ctx.createGain();
-    g.gain.value = 0.08;
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.1, t + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
     const filt = this.ctx.createBiquadFilter();
-    filt.type = 'bandpass';
-    filt.frequency.value = 400;
-    filt.Q.value = 3;
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(this.masterGain);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.6);
-    // Hinge squeak
-    setTimeout(() => {
-      if (!this.ctx || !this.masterGain) return;
-      this.playTone(800, 0.05, 'triangle', 0.04);
-    }, 80);
+    filt.type = 'bandpass'; filt.frequency.value = 300; filt.Q.value = 5;
+    osc.connect(filt); filt.connect(g); g.connect(this.masterGain);
+    osc.start(t); osc.stop(t + 2);
+    // Sub weight
+    this.playTone(30, 0.8, 'sine', 0.06);
   }
 
   // --- SFX ---
@@ -719,16 +746,27 @@ class AudioManager {
 
   playWrongDoor() {
     if (!this.ctx || !this.masterGain) return;
-    // More dramatic wrong door sound
-    this.playNoise(0.3, 0.18);
-    this.playTone(70, 0.5, 'square', 0.15);
-    this.playTone(75, 0.5, 'sawtooth', 0.1); // dissonant layer
-    // Slam impact
-    this.playTone(25, 0.3, 'sine', 0.2);
+    const t = this.ctx.currentTime;
+    // Heavy slam — violent, final
+    this.playTone(20, 0.8, 'sine', 0.3); // massive sub impact
+    this.playNoise(0.2, 0.25); // impact crack
+    // Dissonant horror sting
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(90, t);
+    osc.frequency.linearRampToValueAtTime(60, t + 1);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.18, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 400;
+    osc.connect(f); f.connect(g); g.connect(this.masterGain);
+    osc.start(t); osc.stop(t + 1.5);
+    // Second dissonant tone
     setTimeout(() => {
-      this.playNoise(0.15, 0.1);
-      this.playTone(50, 0.3, 'triangle', 0.08);
-    }, 100);
+      this.playTone(95, 0.8, 'sawtooth', 0.1);
+      this.playNoise(0.3, 0.08);
+    }, 80);
   }
 
   playFlicker() {
@@ -927,8 +965,14 @@ class AudioManager {
   }
 
   playCorrectDoor() {
-    this.playTone(440, 0.3, 'sine', 0.1);
-    setTimeout(() => this.playTone(550, 0.3, 'sine', 0.08), 150);
+    if (!this.ctx || !this.masterGain) return;
+    // Eerie low confirmation — not happy, just... relief mixed with dread
+    this.playTone(110, 1.5, 'sine', 0.08);
+    this.playTone(130.81, 1.5, 'sine', 0.05); // minor 3rd — somber
+    setTimeout(() => {
+      this.playFilteredNoise(1.2, 0.03, 300, 'bandpass', 2);
+    }, 200);
+    this.playTone(25, 1, 'sine', 0.06); // sub rumble
   }
 
   // Wind gust during portal transition
@@ -1077,61 +1121,68 @@ class AudioManager {
     };
     scheduleWhisper();
 
-    // Suspenseful piano - frequent, dark minor key with reverb
+    // Slow, cinematic horror piano — deliberate single notes with long decay
+    const menuPhrases = [
+      [55.00, 0, 8, 0.08],    // A1
+      [58.27, 2500, 7, 0.06], // Bb1 — minor 2nd
+      [51.91, 5500, 6, 0.05], // Ab1 — descending
+      
+      [65.41, 0, 7, 0.07],    // C2
+      [69.30, 2000, 6, 0.06], // C#2
+      [61.74, 4500, 5, 0.05], // B1
+
+      [73.42, 0, 8, 0.07],    // D2
+      [77.78, 3000, 6, 0.055],// Eb2
+      [69.30, 6000, 5, 0.04], // C#2
+    ];
+    let menuPhraseIdx = 0;
+    
     const schedulePiano = () => {
-      const delay = 2000 + Math.random() * 3500;
+      const delay = 5000 + Math.random() * 5000; // very slow pacing
       const timer = setTimeout(() => {
         if (!this.ctx || !this.masterGain) return;
-        // Darker note set: minor, diminished, tritone intervals
-        const notes = [
-          82.41, 87.31, 92.5, 98, 103.83, 110,
-          116.54, 123.47, 130.81, 138.59, 146.83, 155.56,
-          164.81, 174.61, 185, 196, 207.65, 220,
-        ];
-        const freq = notes[Math.floor(Math.random() * notes.length)];
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        osc.detune.value = (Math.random() - 0.5) * 15;
-        const g = this.ctx.createGain();
-        g.gain.setValueAtTime(0.055, this.ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 4.5);
-        // Triple delay for haunted reverb
-        const dly = this.ctx.createDelay();
-        dly.delayTime.value = 0.4;
-        const dly2 = this.ctx.createDelay();
-        dly2.delayTime.value = 0.9;
-        const dly3 = this.ctx.createDelay();
-        dly3.delayTime.value = 1.5;
-        const dlyG = this.ctx.createGain();
-        dlyG.gain.value = 0.03;
-        const dly2G = this.ctx.createGain();
-        dly2G.gain.value = 0.018;
-        const dly3G = this.ctx.createGain();
-        dly3G.gain.value = 0.01;
-        osc.connect(g);
-        g.connect(this.masterGain!);
-        g.connect(dly); dly.connect(dlyG); dlyG.connect(this.masterGain!);
-        g.connect(dly2); dly2.connect(dly2G); dly2G.connect(this.masterGain!);
-        g.connect(dly3); dly3.connect(dly3G); dly3G.connect(this.masterGain!);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 5);
-        // Occasional dissonant cluster
-        if (Math.random() > 0.55) {
+        const startIdx = menuPhraseIdx * 3;
+        const phrase = menuPhrases.slice(startIdx, startIdx + 3);
+        if (phrase.length === 0) { menuPhraseIdx = 0; schedulePiano(); return; }
+        menuPhraseIdx++;
+        if (menuPhraseIdx * 3 >= menuPhrases.length) menuPhraseIdx = 0;
+        
+        phrase.forEach(([freq, delayMs, dur, vol]) => {
           setTimeout(() => {
             if (!this.ctx || !this.masterGain) return;
-            const osc2 = this.ctx.createOscillator();
-            osc2.type = 'sine';
-            osc2.frequency.value = freq * 1.0595; // minor 2nd - very tense
-            const g2 = this.ctx.createGain();
-            g2.gain.setValueAtTime(0.025, this.ctx.currentTime);
-            g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
-            osc2.connect(g2);
-            g2.connect(this.masterGain!);
-            osc2.start();
-            osc2.stop(this.ctx.currentTime + 3.5);
-          }, 150 + Math.random() * 300);
-        }
+            const t = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.detune.value = (Math.random() - 0.5) * 6;
+            const g = this.ctx.createGain();
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(vol, t + 0.015);
+            g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.6);
+            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            // Harmonic shimmer
+            const h = this.ctx!.createOscillator();
+            h.type = 'sine';
+            h.frequency.value = freq * 2;
+            const hg = this.ctx!.createGain();
+            hg.gain.setValueAtTime(vol * 0.12, t);
+            hg.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.6);
+            // Long hall reverb
+            const d1 = this.ctx!.createDelay(); d1.delayTime.value = 0.5;
+            const d1g = this.ctx!.createGain(); d1g.gain.value = 0.035;
+            const d2 = this.ctx!.createDelay(); d2.delayTime.value = 1.3;
+            const d2g = this.ctx!.createGain(); d2g.gain.value = 0.02;
+            const d3 = this.ctx!.createDelay(); d3.delayTime.value = 2.2;
+            const d3g = this.ctx!.createGain(); d3g.gain.value = 0.01;
+            osc.connect(g); g.connect(this.masterGain!);
+            g.connect(d1); d1.connect(d1g); d1g.connect(this.masterGain!);
+            g.connect(d2); d2.connect(d2g); d2g.connect(this.masterGain!);
+            g.connect(d3); d3.connect(d3g); d3g.connect(this.masterGain!);
+            h.connect(hg); hg.connect(this.masterGain!);
+            osc.start(t); osc.stop(t + dur + 1);
+            h.start(t); h.stop(t + dur * 0.6 + 1);
+          }, delayMs);
+        });
         schedulePiano();
       }, delay);
       this.menuAmbienceTimers.push(timer);
