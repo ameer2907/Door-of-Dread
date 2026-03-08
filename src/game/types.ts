@@ -59,4 +59,7 @@ export interface GameState {
   filmGrain: boolean;
   chromaticAberration: number;
   portal: PortalTransition;
+  ghostSpawnType: GhostSpawnType;
+  ghostApproachProgress: number; // 0-1 how close ghost is to player
+  roomDarkness: number; // 0-1 room darkening during encounters
 }
