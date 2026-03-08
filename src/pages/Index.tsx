@@ -5,7 +5,7 @@ import MainMenu from '@/components/game/MainMenu';
 import JoystickControl from '@/components/game/JoystickControl';
 import PostProcessing from '@/components/game/PostProcessing';
 
-export default function Index() {
+export default function Index() { // Door of Dread
   return (
     <GameProvider>
       <div className="w-screen h-screen bg-background overflow-hidden relative">
