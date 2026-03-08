@@ -14,6 +14,11 @@ class AudioManager {
   private musicEnabled = true;
   private musicPlaying = false;
 
+  // Ambient layers
+  private ambientLayers: { source: AudioBufferSourceNode | OscillatorNode; gain: GainNode }[] = [];
+  private footstepInterval: number | null = null;
+  private whisperInterval: number | null = null;
+
   init() {
     if (this.initialized) return;
     this.ctx = new AudioContext();
@@ -70,6 +75,238 @@ class AudioManager {
     source.start();
   }
 
+  // --- Layered Ambient Sound System ---
+  startRoomAmbience(type: string) {
+    this.stopRoomAmbience();
+    if (!this.ctx || !this.masterGain) return;
+
+    switch (type) {
+      case 'wind':
+        this._layerWind();
+        break;
+      case 'drip':
+        this._layerWind();
+        this._layerDrip();
+        break;
+      case 'whisper':
+        this._layerWind();
+        this._layerWhispers();
+        break;
+      case 'scream':
+        this._layerWind();
+        this._layerDistantScreams();
+        break;
+      case 'child':
+        this._layerMusicBox();
+        this._layerWhispers();
+        break;
+      case 'ritual':
+        this._layerRitualChant();
+        this._layerWind();
+        break;
+      case 'silence':
+        // Subtle low-freq rumble only
+        this._layerDeepRumble();
+        break;
+    }
+  }
+
+  private _layerWind() {
+    if (!this.ctx || !this.masterGain) return;
+    const bufLen = this.ctx.sampleRate * 4;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1);
+
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 250;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.03;
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+    this.ambientLayers.push({ source: src, gain: g });
+  }
+
+  private _layerDrip() {
+    if (!this.ctx || !this.masterGain) return;
+    const scheduleDrip = () => {
+      if (!this.ctx || !this.masterGain) return;
+      const delay = 1500 + Math.random() * 3000;
+      const timer = setTimeout(() => {
+        if (!this.ctx || !this.masterGain) return;
+        // Water drip: short high-freq ping
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(2000 + Math.random() * 500, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.15);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0.04, this.ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+        osc.connect(g);
+        g.connect(this.masterGain!);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+        scheduleDrip();
+      }, delay);
+      (this as any)._dripTimer = timer;
+    };
+    scheduleDrip();
+  }
+
+  private _layerWhispers() {
+    if (!this.ctx || !this.masterGain) return;
+    const scheduleWhisper = () => {
+      const delay = 4000 + Math.random() * 8000;
+      this.whisperInterval = window.setTimeout(() => {
+        if (!this.ctx || !this.masterGain) return;
+        // Breathy noise whisper
+        const bufLen = this.ctx.sampleRate * 1.5;
+        const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < bufLen; i++) {
+          d[i] = (Math.random() * 2 - 1) * Math.sin(i / bufLen * Math.PI);
+        }
+        const src = this.ctx.createBufferSource();
+        src.buffer = buf;
+        const filt = this.ctx.createBiquadFilter();
+        filt.type = 'bandpass';
+        filt.frequency.value = 1500 + Math.random() * 500;
+        filt.Q.value = 3;
+        const g = this.ctx.createGain();
+        g.gain.value = 0.02;
+        src.connect(filt);
+        filt.connect(g);
+        g.connect(this.masterGain!);
+        src.start();
+        scheduleWhisper();
+      }, delay);
+    };
+    scheduleWhisper();
+  }
+
+  private _layerDistantScreams() {
+    if (!this.ctx || !this.masterGain) return;
+    const scheduleScream = () => {
+      const delay = 8000 + Math.random() * 15000;
+      setTimeout(() => {
+        if (!this.ctx || !this.masterGain) return;
+        // Distant muffled scream
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400 + Math.random() * 200, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.5);
+        osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 1.5);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        g.gain.linearRampToValueAtTime(0.03, this.ctx.currentTime + 0.3);
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+        const filt = this.ctx.createBiquadFilter();
+        filt.type = 'lowpass';
+        filt.frequency.value = 600;
+        osc.connect(filt);
+        filt.connect(g);
+        g.connect(this.masterGain!);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 2.5);
+        scheduleScream();
+      }, delay);
+    };
+    scheduleScream();
+  }
+
+  private _layerMusicBox() {
+    if (!this.ctx || !this.masterGain) return;
+    const notes = [523.25, 587.33, 659.25, 783.99, 880]; // C5-A5
+    let noteIdx = 0;
+    const playNote = () => {
+      if (!this.ctx || !this.masterGain) return;
+      const freq = notes[noteIdx % notes.length];
+      noteIdx++;
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.03, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.5);
+      osc.connect(g);
+      g.connect(this.masterGain!);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 2);
+    };
+    const schedule = () => {
+      setTimeout(() => {
+        playNote();
+        if (Math.random() > 0.3) {
+          setTimeout(playNote, 400);
+        }
+        schedule();
+      }, 3000 + Math.random() * 4000);
+    };
+    schedule();
+  }
+
+  private _layerRitualChant() {
+    if (!this.ctx || !this.masterGain) return;
+    // Deep monotone chant drone
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 80;
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.value = 120;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.02;
+    const lfo = this.ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.2;
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = 0.01;
+    lfo.connect(lfoGain);
+    lfoGain.connect(g.gain);
+    lfo.start();
+    osc.connect(g);
+    osc2.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc2.start();
+    this.ambientLayers.push({ source: osc, gain: g });
+    this.musicOscillators.push(osc2, lfo);
+  }
+
+  private _layerDeepRumble() {
+    if (!this.ctx || !this.masterGain) return;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 25;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.04;
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    this.ambientLayers.push({ source: osc, gain: g });
+  }
+
+  stopRoomAmbience() {
+    this.ambientLayers.forEach(l => { try { l.source.stop(); } catch {} });
+    this.ambientLayers = [];
+    if (this.whisperInterval) { clearTimeout(this.whisperInterval); this.whisperInterval = null; }
+    if ((this as any)._dripTimer) { clearTimeout((this as any)._dripTimer); }
+  }
+
+  // --- Footsteps ---
+  playFootstep() {
+    if (!this.ctx || !this.masterGain) return;
+    const freq = 100 + Math.random() * 80;
+    this.playTone(freq, 0.08, 'sine', 0.04);
+    this.playNoise(0.05, 0.02);
+  }
+
   // --- Horror Music System ---
   startMusic() {
     if (!this.ctx || !this.musicGain || this.musicPlaying) return;
@@ -82,18 +319,13 @@ class AudioManager {
 
   private _startDrone() {
     if (!this.ctx || !this.musicGain) return;
-
-    // Deep rumbling drone - like distant machinery/tractor
     const freqs = [28, 32, 42, 56];
     freqs.forEach((f, idx) => {
       const osc = this.ctx!.createOscillator();
       osc.type = idx < 2 ? 'sine' : 'triangle';
       osc.frequency.value = f;
-
       const g = this.ctx!.createGain();
       g.gain.value = idx < 2 ? 0.06 : 0.03;
-
-      // Slow breathing LFO
       const lfo = this.ctx!.createOscillator();
       lfo.type = 'sine';
       lfo.frequency.value = 0.03 + Math.random() * 0.04;
@@ -102,14 +334,12 @@ class AudioManager {
       lfo.connect(lfoGain);
       lfoGain.connect(g.gain);
       lfo.start();
-
       osc.connect(g);
       g.connect(this.musicGain!);
       osc.start();
       this.musicOscillators.push(osc);
     });
 
-    // Filtered wind noise layer
     const bufLen = this.ctx.sampleRate * 5;
     const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
     const d = buf.getChannelData(0);
@@ -138,14 +368,11 @@ class AudioManager {
 
   private _startMetalCreaks() {
     if (!this.ctx || !this.musicGain) return;
-
-    // Occasional distant metal creak sounds
     const scheduleCreak = () => {
       if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
       const delay = 6000 + Math.random() * 8000;
       setTimeout(() => {
         if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
-        // Metal creak: high freq short burst with pitch sweep
         const osc = this.ctx.createOscillator();
         osc.type = 'sawtooth';
         const startFreq = 300 + Math.random() * 400;
@@ -194,19 +421,12 @@ class AudioManager {
       osc.start();
       osc.stop(this.ctx.currentTime + 4.5);
     };
-
     const scheduleNext = () => {
       if (!this.musicPlaying) return;
       const d = 4000 + Math.random() * 5000;
-      setTimeout(() => {
-        playNote();
-        scheduleNext();
-      }, d);
+      setTimeout(() => { playNote(); scheduleNext(); }, d);
     };
-    setTimeout(() => {
-      playNote();
-      scheduleNext();
-    }, 2000);
+    setTimeout(() => { playNote(); scheduleNext(); }, 2000);
   }
 
   stopMusic() {
@@ -215,30 +435,20 @@ class AudioManager {
     this.musicOscillators = [];
     this.musicBufferSources.forEach(s => { try { s.stop(); } catch {} });
     this.musicBufferSources = [];
-    if (this.musicInterval) {
-      clearInterval(this.musicInterval);
-      this.musicInterval = null;
-    }
+    if (this.musicInterval) { clearInterval(this.musicInterval); this.musicInterval = null; }
   }
 
   toggleMusic(): boolean {
     this.musicEnabled = !this.musicEnabled;
-    if (this.musicEnabled) {
-      this.startMusic();
-    } else {
-      this.stopMusic();
-    }
+    if (this.musicEnabled) this.startMusic(); else this.stopMusic();
     return this.musicEnabled;
   }
 
-  isMusicEnabled() {
-    return this.musicEnabled;
-  }
+  isMusicEnabled() { return this.musicEnabled; }
 
-  // --- Title Screen Audio ---
+  // --- Title Screen ---
   playTitleIntro() {
     if (!this.ctx || !this.masterGain) return;
-    // Deep ominous drone that builds
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = 30;
@@ -251,7 +461,6 @@ class AudioManager {
     osc.start();
     osc.stop(this.ctx.currentTime + 8);
 
-    // Eerie high whistle
     const osc2 = this.ctx.createOscillator();
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(800, this.ctx.currentTime);
@@ -265,17 +474,21 @@ class AudioManager {
     osc2.start();
     osc2.stop(this.ctx.currentTime + 6);
 
-    // Wind noise
     this.playNoise(5, 0.03);
+  }
+
+  // Lightning crack for menu
+  playLightningCrack() {
+    if (!this.ctx || !this.masterGain) return;
+    this.playNoise(0.3, 0.25);
+    this.playTone(40, 0.6, 'sine', 0.15);
+    setTimeout(() => this.playNoise(0.5, 0.08), 200);
   }
 
   playTitleHit(wordIndex: number) {
     if (!this.ctx || !this.masterGain) return;
-    // Impact hit that gets heavier with each word
     const intensity = 0.12 + wordIndex * 0.08;
     const baseFreq = 50 - wordIndex * 10;
-
-    // Heavy bass hit
     const osc = this.ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(baseFreq + 30, this.ctx.currentTime);
@@ -287,11 +500,7 @@ class AudioManager {
     g.connect(this.masterGain);
     osc.start();
     osc.stop(this.ctx.currentTime + 1.5);
-
-    // Noise burst
     this.playNoise(0.15 + wordIndex * 0.05, 0.08 + wordIndex * 0.04);
-
-    // On last word "DREAD" - add dissonant sting
     if (wordIndex === 2) {
       this.playTone(180, 2, 'sawtooth', 0.08);
       this.playTone(187, 2, 'sawtooth', 0.06);
@@ -299,10 +508,9 @@ class AudioManager {
     }
   }
 
-  // Slow creepy door opening sound
+  // --- Door Sounds ---
   playHorrorDoorOpen() {
     if (!this.ctx || !this.masterGain) return;
-    // Long creaking sound
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(80, this.ctx.currentTime);
@@ -324,7 +532,23 @@ class AudioManager {
     osc.start();
     osc.stop(this.ctx.currentTime + 2.5);
 
-    // Wood stress groans
+    // Hinge creak
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      const osc2 = this.ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(350, this.ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.5);
+      const g2 = this.ctx.createGain();
+      g2.gain.value = 0.04;
+      g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.6);
+      osc2.connect(g2);
+      g2.connect(this.masterGain);
+      osc2.start();
+      osc2.stop(this.ctx.currentTime + 0.7);
+    }, 300);
+
+    // Wood stress groan
     setTimeout(() => {
       if (!this.ctx || !this.masterGain) return;
       const osc2 = this.ctx.createOscillator();
@@ -338,10 +562,32 @@ class AudioManager {
       g2.connect(this.masterGain);
       osc2.start();
       osc2.stop(this.ctx.currentTime + 0.8);
-    }, 400);
+    }, 600);
 
-    // Deep boom
     this.playTone(35, 0.8, 'sine', 0.06);
+  }
+
+  playDoorCreak() {
+    if (!this.ctx || !this.masterGain) return;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.4);
+    const g = this.ctx.createGain();
+    g.gain.value = 0.08;
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = 400;
+    osc.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.5);
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      this.playTone(800, 0.05, 'sine', 0.04);
+    }, 80);
   }
 
   // --- SFX ---
@@ -367,32 +613,6 @@ class AudioManager {
     this.ambientGain = null;
   }
 
-  // Soft wooden door creak
-  playDoorCreak() {
-    if (!this.ctx || !this.masterGain) return;
-    // Gentle wood creak - lower volume, warmer tone
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.4);
-    const g = this.ctx.createGain();
-    g.gain.value = 0.08;
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
-    const filt = this.ctx.createBiquadFilter();
-    filt.type = 'lowpass';
-    filt.frequency.value = 400;
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(this.masterGain);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.5);
-    // Quiet click
-    setTimeout(() => {
-      if (!this.ctx || !this.masterGain) return;
-      this.playTone(800, 0.05, 'sine', 0.04);
-    }, 80);
-  }
-
   playWrongDoor() {
     this.playNoise(0.2, 0.12);
     this.playTone(70, 0.4, 'square', 0.12);
@@ -403,15 +623,12 @@ class AudioManager {
     setTimeout(() => this.playNoise(0.08, 0.06), 200);
   }
 
-  // Ghost entrance audio sting - sudden sharp hit
   playGhostSting() {
     if (!this.ctx || !this.masterGain) return;
-    // Sharp dissonant hit
     this.playTone(120, 1.2, 'sine', 0.2);
     this.playTone(127, 1.2, 'sine', 0.18);
     this.playTone(240, 0.6, 'triangle', 0.1);
     this.playNoise(0.3, 0.12);
-    // Delayed reverb-like echo
     setTimeout(() => {
       this.playTone(60, 1.5, 'sine', 0.08);
       this.playNoise(0.8, 0.04);
@@ -420,27 +637,43 @@ class AudioManager {
 
   playGhostScream() {
     if (!this.ctx || !this.masterGain) return;
-    // Layered horror scream: dissonant chord + noise burst + rising pitch
-    this.playTone(180, 2, 'sawtooth', 0.25);
-    this.playTone(190, 2, 'sawtooth', 0.2); // dissonant beating
-    this.playTone(380, 1.5, 'square', 0.12);
-    this.playNoise(1.2, 0.15);
+    // LOUDER more terrifying scream
+    this.playTone(180, 2, 'sawtooth', 0.35);
+    this.playTone(190, 2, 'sawtooth', 0.3);
+    this.playTone(380, 1.5, 'square', 0.2);
+    this.playNoise(1.5, 0.25);
     // Rising shriek
     const osc = this.ctx.createOscillator();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(300, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 1.5);
+    osc.frequency.exponentialRampToValueAtTime(2000, this.ctx.currentTime + 1);
     const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.15, this.ctx.currentTime);
+    g.gain.setValueAtTime(0.25, this.ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
     const filt = this.ctx.createBiquadFilter();
     filt.type = 'lowpass';
-    filt.frequency.value = 2000;
+    filt.frequency.value = 3000;
     osc.connect(filt);
     filt.connect(g);
     g.connect(this.masterGain);
     osc.start();
     osc.stop(this.ctx.currentTime + 2);
+    // Sub bass impact
+    this.playTone(25, 1, 'sine', 0.3);
+    // Additional dissonant layer
+    setTimeout(() => {
+      this.playTone(440, 1, 'sawtooth', 0.15);
+      this.playTone(466, 1, 'sawtooth', 0.12);
+    }, 100);
+  }
+
+  // Jumpscare stinger - very loud and sudden
+  playJumpscareStinger() {
+    if (!this.ctx || !this.masterGain) return;
+    this.playNoise(0.1, 0.4);
+    this.playTone(100, 0.3, 'square', 0.4);
+    this.playTone(2000, 0.2, 'sawtooth', 0.2);
+    setTimeout(() => this.playNoise(0.3, 0.15), 50);
   }
 
   playWhisper() {
@@ -458,10 +691,7 @@ class AudioManager {
   }
 
   stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
+    if (this.heartbeatInterval) { clearInterval(this.heartbeatInterval); this.heartbeatInterval = null; }
   }
 
   playCorrectDoor() {
@@ -478,6 +708,7 @@ class AudioManager {
     this.stopAmbient();
     this.stopHeartbeat();
     this.stopMusic();
+    this.stopRoomAmbience();
   }
 }
 
