@@ -24,24 +24,60 @@ export default function Door3D({ position, index, isCorrect, isOpening, onSelect
     return seed % 3;
   }, [roomIndex, index]);
 
+  // Suspense delay state
+  const suspensePhase = useRef<'idle' | 'handle' | 'breath' | 'opening'>('idle');
+  const suspenseTimer = useRef(0);
+  const breathPlayed = useRef(false);
+
   useFrame((state, delta) => {
     if (!pivotRef.current) return;
 
     if (isOpening) {
-      // Handle rotation (turns down before door opens)
-      if (handleAngle.current < Math.PI / 4) {
-        handleAngle.current = Math.min(handleAngle.current + delta * 3, Math.PI / 4);
+      suspenseTimer.current += delta;
+
+      // Phase 1: Handle rotation (0–0.5s)
+      if (suspensePhase.current === 'idle') {
+        suspensePhase.current = 'handle';
+        suspenseTimer.current = 0;
+        breathPlayed.current = false;
       }
 
-      // Door opening - slow start, accelerates
-      const targetAngle = Math.PI / 2;
-      const remaining = targetAngle - openAngle.current;
-      const speed = 0.3 + (openAngle.current / targetAngle) * 1.5;
-      openAngle.current = Math.min(openAngle.current + delta * speed, targetAngle);
-      const wobble = Math.sin(state.clock.elapsedTime * 8) * 0.005 * (remaining / targetAngle);
-      pivotRef.current.rotation.y = -(openAngle.current + wobble);
+      if (suspensePhase.current === 'handle') {
+        handleAngle.current = Math.min(handleAngle.current + delta * 3, Math.PI / 4);
+        if (handleAngle.current >= Math.PI / 4 - 0.01) {
+          suspensePhase.current = 'breath';
+          suspenseTimer.current = 0;
+        }
+      }
+
+      // Phase 2: 1.5s suspense silence with heavy breath (handle down, door still closed)
+      if (suspensePhase.current === 'breath') {
+        if (!breathPlayed.current) {
+          breathPlayed.current = true;
+          // Heavy breath sound will be triggered from audio system
+          import('@/game/audio').then(m => m.audioManager.playHeavyBreath());
+        }
+        if (suspenseTimer.current >= 1.5) {
+          suspensePhase.current = 'opening';
+          suspenseTimer.current = 0;
+        }
+        // Door stays closed during breath phase
+      }
+
+      // Phase 3: Door swings open
+      if (suspensePhase.current === 'opening') {
+        const targetAngle = Math.PI / 2;
+        const remaining = targetAngle - openAngle.current;
+        const speed = 0.3 + (openAngle.current / targetAngle) * 1.5;
+        openAngle.current = Math.min(openAngle.current + delta * speed, targetAngle);
+        const wobble = Math.sin(state.clock.elapsedTime * 8) * 0.005 * (remaining / targetAngle);
+        pivotRef.current.rotation.y = -(openAngle.current + wobble);
+      }
     } else {
-      // Close door
+      // Close door & reset
+      suspensePhase.current = 'idle';
+      suspenseTimer.current = 0;
+      breathPlayed.current = false;
       handleAngle.current = Math.max(handleAngle.current - delta * 4, 0);
       openAngle.current = Math.max(openAngle.current - delta * 4, 0);
       pivotRef.current.rotation.y = -openAngle.current;

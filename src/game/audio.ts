@@ -1600,12 +1600,177 @@ class AudioManager {
     }
   }
 
+  // === SHEPARD TONE — infinitely rising pitch illusion ===
+  private shepardOscs: OscillatorNode[] = [];
+  private shepardGains: GainNode[] = [];
+  private shepardActive = false;
+
+  playShepardTone(durationSec = 4) {
+    if (!this.ctx || !this.masterGain) return;
+    this.stopShepardTone();
+    this.shepardActive = true;
+    const t = this.ctx.currentTime;
+    const baseFreqs = [55, 110, 220, 440, 880];
+
+    baseFreqs.forEach((baseF, i) => {
+      const osc = this.ctx!.createOscillator();
+      osc.type = 'sine';
+      // Each octave sweeps up one octave over the duration
+      osc.frequency.setValueAtTime(baseF, t);
+      osc.frequency.exponentialRampToValueAtTime(baseF * 2, t + durationSec);
+
+      const g = this.ctx!.createGain();
+      // Bell-curve envelope — middle frequencies loudest
+      const peak = i === 2 ? 0.06 : i === 1 || i === 3 ? 0.04 : 0.015;
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(peak, t + durationSec * 0.3);
+      g.gain.linearRampToValueAtTime(peak * 0.8, t + durationSec * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.001, t + durationSec);
+
+      const filt = this.ctx!.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.frequency.value = 300;
+      filt.Q.value = 0.5;
+
+      osc.connect(filt);
+      filt.connect(g);
+      g.connect(this.masterGain!);
+      osc.start(t);
+      osc.stop(t + durationSec + 0.1);
+
+      this.shepardOscs.push(osc);
+      this.shepardGains.push(g);
+    });
+  }
+
+  stopShepardTone() {
+    this.shepardActive = false;
+    this.shepardOscs.forEach(o => { try { o.stop(); } catch {} });
+    this.shepardOscs = [];
+    this.shepardGains = [];
+  }
+
+  // === HEAVY BREATH — single deep inhale for suspense delay ===
+  playHeavyBreath() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    const bufLen = this.ctx.sampleRate * 2;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const time = i / this.ctx.sampleRate;
+      // Single slow inhale-exhale cycle
+      const envelope = Math.sin(time * Math.PI * 0.5) * Math.exp(-time * 0.8);
+      d[i] = (Math.random() * 2 - 1) * envelope;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 350;
+    filt.Q.value = 1.2;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.4);
+    g.gain.linearRampToValueAtTime(0.08, t + 1.2);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 2);
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+    // Subtle low presence
+    this.playTone(40, 1.5, 'sine', 0.05);
+  }
+
+  // === DYNAMIC AUDIO MIX STATES ===
+  private mixState: 'safe' | 'discovery' | 'chase' = 'safe';
+  private mixDrone: OscillatorNode | null = null;
+  private mixDroneGain: GainNode | null = null;
+
+  setAudioMixState(state: 'safe' | 'discovery' | 'chase') {
+    if (!this.ctx || !this.masterGain || this.mixState === state) return;
+    this.mixState = state;
+
+    // Clean up existing mix drone
+    if (this.mixDrone) { try { this.mixDrone.stop(); } catch {} this.mixDrone = null; }
+
+    const t = this.ctx.currentTime;
+
+    switch (state) {
+      case 'safe':
+        // 40Hz low drone + high-pass wind
+        this.mixDrone = this.ctx.createOscillator();
+        this.mixDrone.type = 'sine';
+        this.mixDrone.frequency.value = 40;
+        this.mixDroneGain = this.ctx.createGain();
+        this.mixDroneGain.gain.setValueAtTime(0.001, t);
+        this.mixDroneGain.gain.linearRampToValueAtTime(0.04, t + 2);
+        this.mixDrone.connect(this.mixDroneGain);
+        this.mixDroneGain.connect(this.masterGain);
+        this.mixDrone.start();
+        break;
+
+      case 'discovery':
+        // Shepard tone automatically triggered by door system
+        this.playShepardTone(5);
+        break;
+
+      case 'chase':
+        // Cut low frequencies, rapid heartbeat handled externally
+        this.mixDrone = this.ctx.createOscillator();
+        this.mixDrone.type = 'sawtooth';
+        this.mixDrone.frequency.value = 200;
+        this.mixDroneGain = this.ctx.createGain();
+        this.mixDroneGain.gain.setValueAtTime(0.001, t);
+        this.mixDroneGain.gain.linearRampToValueAtTime(0.08, t + 0.5);
+        const hpf = this.ctx.createBiquadFilter();
+        hpf.type = 'highpass';
+        hpf.frequency.value = 300;
+        this.mixDrone.connect(hpf);
+        hpf.connect(this.mixDroneGain);
+        this.mixDroneGain.connect(this.masterGain);
+        this.mixDrone.start();
+        break;
+    }
+  }
+
+  stopMixDrone() {
+    if (this.mixDrone) { try { this.mixDrone.stop(); } catch {} this.mixDrone = null; }
+    this.mixDroneGain = null;
+    this.mixState = 'safe';
+  }
+
+  // === GOD RAY SOUND — ethereal light hum for doorway transitions ===
+  playGodRayHum() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Ethereal choir-like chord
+    [220, 330, 440].forEach(freq => {
+      const osc = this.ctx!.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      osc.detune.value = (Math.random() - 0.5) * 10;
+      const g = this.ctx!.createGain();
+      g.gain.setValueAtTime(0.001, t);
+      g.gain.linearRampToValueAtTime(0.025, t + 1);
+      g.gain.linearRampToValueAtTime(0.02, t + 2.5);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 4);
+      osc.connect(g);
+      g.connect(this.masterGain!);
+      osc.start(t);
+      osc.stop(t + 4.5);
+    });
+    this.playFilteredNoise(3, 0.02, 250, 'lowpass');
+  }
+
   stopAll() {
     this.stopAmbient();
     this.stopHeartbeat();
     this.stopMusic();
     this.stopRoomAmbience();
     this.stopMenuAmbience();
+    this.stopShepardTone();
+    this.stopMixDrone();
   }
 }
 

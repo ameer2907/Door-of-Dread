@@ -185,20 +185,33 @@ export default function RandomHorrorEvents() {
     // Decay accumulator
     totalTurnAccum.current = Math.max(0, totalTurnAccum.current - delta * 0.5);
 
-    // === MIRROR GHOST DETECTION ===
+    // === MIRROR GHOST DETECTION — "Look-Away" mechanic ===
+    // Ghost in mirror only moves/appears when camera is NOT facing it
     if (ROOM_CONFIGS[gs.currentRoom].roomTheme === 'mirror' && !gs.ghostVisible) {
       mirrorCheckTimer.current += delta;
-      if (mirrorCheckTimer.current > 3) {
+      if (mirrorCheckTimer.current > 2) {
         mirrorCheckTimer.current = 0;
-        // Check if player is facing a mirror wall
         const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
         const facingLeft = fwd.x < -0.6;
         const facingRight = fwd.x > 0.6;
         const facingBack = fwd.z > 0.6;
+        const facingMirrorWall = facingLeft || facingRight || facingBack;
 
-        if ((facingLeft || facingRight || facingBack) && Math.random() < 0.2) {
+        if (facingMirrorWall && Math.random() < 0.2) {
           setMirrorGhost(true);
-          setTimeout(() => setMirrorGhost(false), 2000);
+          // Ghost only disappears when player turns to look directly at it
+          const checkLookAway = () => {
+            const nowFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            const nowFacing = nowFwd.x < -0.6 || nowFwd.x > 0.6 || nowFwd.z > 0.6;
+            if (!nowFacing) {
+              // Player looked away — ghost advances/stays
+              setTimeout(() => setMirrorGhost(false), 1500 + Math.random() * 1500);
+            } else {
+              // Player still looking at mirror — ghost frozen, check again
+              setTimeout(checkLookAway, 300);
+            }
+          };
+          setTimeout(checkLookAway, 800);
         }
       }
     }

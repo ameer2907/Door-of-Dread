@@ -503,6 +503,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     audioManager.playGhostScream();
     audioManager.playChaseMusic();
     audioManager.startHeartbeat(300);
+    audioManager.setAudioMixState('chase');
     update();
 
     // If player doesn't escape in 8 seconds, game over

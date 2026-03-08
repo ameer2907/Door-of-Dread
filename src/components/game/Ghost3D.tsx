@@ -371,6 +371,12 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
       groupRef.current.position.y = floatY;
       groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
     }
+
+    // Apply twitch offset to head area (rotation-based)
+    if (groupRef.current) {
+      groupRef.current.rotation.z += twitchOffset.current.x;
+      groupRef.current.rotation.x += twitchOffset.current.y * 0.5;
+    }
   });
 
   if (!visible) return null;
