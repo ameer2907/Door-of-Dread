@@ -308,7 +308,6 @@ function GameOverScreen() {
       setLetterReveal(0);
       const t1 = setTimeout(() => setFadeGhost(false), 2000);
       const t2 = setTimeout(() => setShowUI(true), 2800);
-      // Letter-by-letter "DEAD" reveal
       const t3 = setTimeout(() => setLetterReveal(1), 3000);
       const t4 = setTimeout(() => setLetterReveal(2), 3300);
       const t5 = setTimeout(() => setLetterReveal(3), 3600);
@@ -323,7 +322,6 @@ function GameOverScreen() {
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
-      {/* Ghost face lingering */}
       <div
         className="absolute inset-0 flex items-center justify-center transition-opacity duration-1000"
         style={{ opacity: fadeGhost ? 1 : 0 }}
@@ -343,10 +341,9 @@ function GameOverScreen() {
       </div>
 
       {showUI && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center space-y-6 animate-fade-in relative z-10">
-            {/* "Your soul has been consumed" */}
-            <p className="font-horror text-lg md:text-2xl tracking-[0.6em] uppercase"
+        <div className="absolute inset-0 flex items-center justify-center px-4">
+          <div className="text-center space-y-4 sm:space-y-6 animate-fade-in relative z-10 w-full max-w-lg">
+            <p className="font-horror text-sm sm:text-lg md:text-2xl tracking-[0.3em] sm:tracking-[0.6em] uppercase"
                style={{
                  color: 'hsl(0, 60%, 50%)',
                  animation: 'flicker-text 3s infinite',
@@ -355,8 +352,7 @@ function GameOverScreen() {
               Your soul has been consumed
             </p>
 
-            {/* D E A D - letter by letter with blood drip effect */}
-            <div className="flex justify-center gap-2 md:gap-4">
+            <div className="flex justify-center gap-1 sm:gap-2 md:gap-4">
               {deadLetters.map((letter, i) => (
                 <div
                   key={i}
@@ -368,7 +364,7 @@ function GameOverScreen() {
                   }}
                 >
                   <span
-                    className="font-horror text-7xl md:text-[10rem] inline-block"
+                    className="font-horror text-5xl sm:text-7xl md:text-[10rem] inline-block"
                     style={{
                       color: 'hsl(0, 85%, 30%)',
                       textShadow: `0 0 40px rgba(200, 0, 0, 0.9),
@@ -381,7 +377,6 @@ function GameOverScreen() {
                   >
                     {letter}
                   </span>
-                  {/* Blood drip under each letter */}
                   {i < letterReveal && (
                     <div
                       className="absolute left-1/2 -translate-x-1/2 w-1 rounded-full"
@@ -399,13 +394,12 @@ function GameOverScreen() {
               ))}
             </div>
 
-            {/* Subtitle */}
             <div className="space-y-2 pt-2">
-              <p className="text-muted-foreground/40 font-body text-xs tracking-[0.5em] uppercase"
+              <p className="text-muted-foreground/40 font-body text-[10px] sm:text-xs tracking-[0.3em] sm:tracking-[0.5em] uppercase"
                  style={{ animation: 'flicker-text 4s infinite 1s' }}>
                 Darkness has claimed another wanderer
               </p>
-              <p className="font-horror text-sm md:text-base tracking-widest pt-1"
+              <p className="font-horror text-xs sm:text-sm md:text-base tracking-widest pt-1"
                  style={{
                    color: 'hsl(0, 50%, 40%)',
                    textShadow: '0 0 15px rgba(200, 0, 0, 0.4)',
@@ -414,12 +408,11 @@ function GameOverScreen() {
               </p>
             </div>
 
-            {/* Buttons */}
-            <div className="space-y-3 pt-10">
+            <div className="space-y-3 pt-6 sm:pt-10">
               <button
                 onClick={restart}
-                className="group block w-64 mx-auto py-4 border-2 rounded-lg transition-all duration-300
-                           font-horror text-2xl tracking-[0.3em] relative overflow-hidden"
+                className="group block w-48 sm:w-64 mx-auto py-3 sm:py-4 border-2 rounded-lg transition-all duration-300
+                           font-horror text-lg sm:text-2xl tracking-[0.3em] relative overflow-hidden"
                 style={{
                   borderColor: 'hsl(0, 60%, 25%)',
                   backgroundColor: 'hsla(0, 80%, 15%, 0.4)',
@@ -442,8 +435,8 @@ function GameOverScreen() {
               </button>
               <button
                 onClick={() => setPhase('menu')}
-                className="block w-64 mx-auto py-2.5 bg-transparent text-muted-foreground/40
-                           rounded transition-colors hover:text-muted-foreground/70 font-body text-xs tracking-widest"
+                className="block w-48 sm:w-64 mx-auto py-2 sm:py-2.5 bg-transparent text-muted-foreground/40
+                           rounded transition-colors hover:text-muted-foreground/70 font-body text-[10px] sm:text-xs tracking-widest"
               >
                 flee to safety
               </button>
