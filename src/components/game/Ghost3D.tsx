@@ -302,8 +302,9 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
       // Spider-like rotation during descent
       groupRef.current.rotation.x = (1 - easeOut) * Math.PI; // upside down → right side up
       groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
-      return;
     }
+
+    const target = getTargetPosition();
     const targetVec = new THREE.Vector3(target[0], target[1], target[2]);
 
     if (state === 'attack') {
