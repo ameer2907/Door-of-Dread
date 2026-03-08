@@ -755,92 +755,216 @@ class AudioManager {
     this.playTone(120, 0.15, 'square', 0.03);
   }
 
+  // === CONJURING-STYLE GHOST REVEAL STING ===
   playGhostSting() {
     if (!this.ctx || !this.masterGain) return;
-    // More dramatic ghost reveal sting
-    this.playTone(120, 1.5, 'sine', 0.25);
-    this.playTone(127, 1.5, 'sine', 0.22);
-    this.playTone(240, 0.8, 'triangle', 0.12);
-    this.playNoise(0.4, 0.15);
-    // Descending dissonance
-    setTimeout(() => {
-      this.playTone(60, 2, 'sine', 0.1);
-      this.playNoise(1, 0.06);
-      this.playFilteredNoise(1.5, 0.05, 800, 'bandpass', 4);
-    }, 200);
-    // Reverse-sounding swell
+    const t = this.ctx.currentTime;
+    
+    // Layer 1: Massive orchestral hit — low brass stab
+    const brass1 = this.ctx.createOscillator();
+    brass1.type = 'sawtooth';
+    brass1.frequency.setValueAtTime(65, t);
+    brass1.frequency.linearRampToValueAtTime(55, t + 2);
+    const bg1 = this.ctx.createGain();
+    bg1.gain.setValueAtTime(0.35, t);
+    bg1.gain.exponentialRampToValueAtTime(0.15, t + 0.5);
+    bg1.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+    const bf1 = this.ctx.createBiquadFilter();
+    bf1.type = 'lowpass'; bf1.frequency.value = 400;
+    brass1.connect(bf1); bf1.connect(bg1); bg1.connect(this.masterGain);
+    brass1.start(t); brass1.stop(t + 2.5);
+    
+    // Layer 2: Dissonant minor 2nd cluster
+    [120, 127, 113].forEach(freq => {
+      this.playTone(freq, 2.5, 'sine', 0.2);
+    });
+    
+    // Layer 3: High shrieking string glissando
+    const shriek = this.ctx.createOscillator();
+    shriek.type = 'sawtooth';
+    shriek.frequency.setValueAtTime(800, t);
+    shriek.frequency.exponentialRampToValueAtTime(3000, t + 0.3);
+    shriek.frequency.exponentialRampToValueAtTime(1200, t + 1.5);
+    const skg = this.ctx.createGain();
+    skg.gain.setValueAtTime(0.001, t);
+    skg.gain.linearRampToValueAtTime(0.12, t + 0.1);
+    skg.gain.exponentialRampToValueAtTime(0.001, t + 2);
+    const skf = this.ctx.createBiquadFilter();
+    skf.type = 'highpass'; skf.frequency.value = 600;
+    shriek.connect(skf); skf.connect(skg); skg.connect(this.masterGain);
+    shriek.start(t); shriek.stop(t + 2.5);
+    
+    // Layer 4: Sub-bass earthquake thud
+    this.playTone(18, 1.5, 'sine', 0.4);
+    this.playNoise(0.3, 0.2);
+    
+    // Layer 5: Reverse-swell demonic whisper
     setTimeout(() => {
       if (!this.ctx || !this.masterGain) return;
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(200, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 1);
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0.001, this.ctx.currentTime);
-      g.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 0.5);
-      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.2);
-      osc.connect(g);
-      g.connect(this.masterGain!);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 1.5);
-    }, 400);
+      this.playFilteredNoise(2, 0.08, 800, 'bandpass', 5);
+      const v1 = this.ctx.createOscillator();
+      v1.type = 'sawtooth';
+      v1.frequency.setValueAtTime(180, this.ctx.currentTime);
+      v1.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 1.5);
+      const vg = this.ctx.createGain();
+      vg.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      vg.gain.linearRampToValueAtTime(0.1, this.ctx.currentTime + 0.8);
+      vg.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+      const vf = this.ctx.createBiquadFilter();
+      vf.type = 'bandpass'; vf.frequency.value = 300; vf.Q.value = 3;
+      v1.connect(vf); vf.connect(vg); vg.connect(this.masterGain!);
+      v1.start(); v1.stop(this.ctx.currentTime + 2.5);
+    }, 200);
   }
 
+  // === CONJURING-STYLE DEMONIC SCREAM ===
   playGhostScream() {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
     
-    // MASSIVE layered scream
-    this.playTone(180, 2.5, 'sawtooth', 0.4);
-    this.playTone(190, 2.5, 'sawtooth', 0.35);
-    this.playTone(380, 2, 'square', 0.25);
-    this.playNoise(2, 0.3);
+    // Layer 1: Primary demonic scream
+    const scream = this.ctx.createOscillator();
+    scream.type = 'sawtooth';
+    scream.frequency.setValueAtTime(150, t);
+    scream.frequency.exponentialRampToValueAtTime(900, t + 0.3);
+    scream.frequency.linearRampToValueAtTime(700, t + 1.5);
+    scream.frequency.exponentialRampToValueAtTime(2000, t + 2.5);
+    const scg = this.ctx.createGain();
+    scg.gain.setValueAtTime(0.5, t);
+    scg.gain.linearRampToValueAtTime(0.6, t + 0.5);
+    scg.gain.linearRampToValueAtTime(0.5, t + 2);
+    scg.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+    const scf = this.ctx.createBiquadFilter();
+    scf.type = 'lowpass'; scf.frequency.value = 4000;
+    scream.connect(scf); scf.connect(scg); scg.connect(this.masterGain);
+    scream.start(t); scream.stop(t + 3.5);
     
-    // Rising shriek - primary
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(300, t);
-    osc.frequency.exponentialRampToValueAtTime(2500, t + 0.8);
-    osc.frequency.linearRampToValueAtTime(1800, t + 1.5);
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(0.3, t);
-    g.gain.linearRampToValueAtTime(0.35, t + 0.5);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 2);
-    const filt = this.ctx.createBiquadFilter();
-    filt.type = 'lowpass';
-    filt.frequency.value = 3500;
-    osc.connect(filt);
-    filt.connect(g);
-    g.connect(this.masterGain);
-    osc.start();
-    osc.stop(t + 2.5);
-
-    // Sub bass impact - chest-punch
-    this.playTone(20, 1.5, 'sine', 0.4);
-    this.playTone(25, 1, 'sine', 0.35);
+    // Layer 2: Detuned second voice — demonic chorus
+    const scream2 = this.ctx.createOscillator();
+    scream2.type = 'sawtooth';
+    scream2.frequency.setValueAtTime(155, t);
+    scream2.frequency.exponentialRampToValueAtTime(920, t + 0.35);
+    scream2.frequency.linearRampToValueAtTime(720, t + 1.5);
+    scream2.frequency.exponentialRampToValueAtTime(2100, t + 2.5);
+    const sc2g = this.ctx.createGain();
+    sc2g.gain.setValueAtTime(0.4, t);
+    sc2g.gain.exponentialRampToValueAtTime(0.001, t + 3);
+    scream2.connect(sc2g); sc2g.connect(this.masterGain);
+    scream2.start(t); scream2.stop(t + 3.5);
     
-    // Dissonant cluster
+    // Layer 3: Sub-octave growl
+    const growl = this.ctx.createOscillator();
+    growl.type = 'sawtooth';
+    growl.frequency.setValueAtTime(75, t);
+    growl.frequency.linearRampToValueAtTime(45, t + 2);
+    const gg = this.ctx.createGain();
+    gg.gain.setValueAtTime(0.35, t);
+    gg.gain.exponentialRampToValueAtTime(0.001, t + 3);
+    const gf = this.ctx.createBiquadFilter();
+    gf.type = 'lowpass'; gf.frequency.value = 200;
+    growl.connect(gf); gf.connect(gg); gg.connect(this.masterGain);
+    growl.start(t); growl.stop(t + 3.5);
+    
+    // Layer 4: Massive sub-bass body slam
+    this.playTone(15, 2, 'sine', 0.5);
+    this.playTone(22, 1.5, 'sine', 0.45);
+    
+    // Layer 5: High-frequency screeching
+    const screech = this.ctx.createOscillator();
+    screech.type = 'square';
+    screech.frequency.setValueAtTime(1500, t + 0.1);
+    screech.frequency.exponentialRampToValueAtTime(4000, t + 0.5);
+    screech.frequency.linearRampToValueAtTime(2500, t + 2);
+    const schg = this.ctx.createGain();
+    schg.gain.setValueAtTime(0.001, t);
+    schg.gain.linearRampToValueAtTime(0.15, t + 0.2);
+    schg.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+    const schf = this.ctx.createBiquadFilter();
+    schf.type = 'bandpass'; schf.frequency.value = 3000; schf.Q.value = 2;
+    screech.connect(schf); schf.connect(schg); schg.connect(this.masterGain);
+    screech.start(t); screech.stop(t + 3);
+    
+    // Layer 6: Distorted noise — raw terror
+    this.playNoise(2.5, 0.35);
+    this.playFilteredNoise(3, 0.15, 1500, 'bandpass', 3);
+    
+    // Layer 7: Dissonant brass stabs (Conjuring-style)
     setTimeout(() => {
-      this.playTone(440, 1.2, 'sawtooth', 0.18);
-      this.playTone(466, 1.2, 'sawtooth', 0.15);
-      this.playTone(233, 1.5, 'square', 0.1);
-    }, 80);
-
-    // Noise burst for impact texture
-    this.playFilteredNoise(0.5, 0.3, 2000, 'lowpass');
+      this.playTone(110, 1.5, 'sawtooth', 0.25);
+      this.playTone(117, 1.5, 'sawtooth', 0.2);
+      this.playTone(220, 1, 'square', 0.15);
+      this.playTone(233, 1, 'square', 0.12);
+    }, 100);
+    
+    // Layer 8: Delayed secondary scream wave
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      const wave2 = this.ctx.createOscillator();
+      wave2.type = 'sawtooth';
+      wave2.frequency.setValueAtTime(500, this.ctx.currentTime);
+      wave2.frequency.exponentialRampToValueAtTime(3000, this.ctx.currentTime + 0.5);
+      wave2.frequency.linearRampToValueAtTime(1000, this.ctx.currentTime + 1.5);
+      const w2g = this.ctx.createGain();
+      w2g.gain.setValueAtTime(0.3, this.ctx.currentTime);
+      w2g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+      wave2.connect(w2g); w2g.connect(this.masterGain!);
+      wave2.start(); wave2.stop(this.ctx.currentTime + 2.5);
+      this.playNoise(1, 0.2);
+    }, 300);
   }
 
-  // Jumpscare stinger
+  // === MASSIVE JUMPSCARE STINGER ===
   playJumpscareStinger() {
     if (!this.ctx || !this.masterGain) return;
-    this.playNoise(0.15, 0.45);
-    this.playTone(100, 0.4, 'square', 0.45);
-    this.playTone(2000, 0.25, 'sawtooth', 0.25);
-    this.playTone(30, 0.5, 'sine', 0.3); // sub thud
+    const t = this.ctx.currentTime;
+    this.playNoise(0.2, 0.5);
+    this.playTone(80, 0.5, 'square', 0.5);
+    this.playTone(85, 0.5, 'square', 0.45);
+    this.playTone(160, 0.4, 'sawtooth', 0.35);
+    this.playTone(20, 0.8, 'sine', 0.5);
+    const jShriek = this.ctx.createOscillator();
+    jShriek.type = 'sawtooth';
+    jShriek.frequency.setValueAtTime(2000, t);
+    jShriek.frequency.exponentialRampToValueAtTime(5000, t + 0.15);
+    jShriek.frequency.linearRampToValueAtTime(3000, t + 0.4);
+    const jsg = this.ctx.createGain();
+    jsg.gain.setValueAtTime(0.3, t);
+    jsg.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    jShriek.connect(jsg); jsg.connect(this.masterGain);
+    jShriek.start(t); jShriek.stop(t + 0.6);
     setTimeout(() => {
-      this.playNoise(0.3, 0.2);
-      this.playTone(3000, 0.15, 'sawtooth', 0.15);
-    }, 50);
+      this.playNoise(0.4, 0.3);
+      this.playTone(3500, 0.2, 'sawtooth', 0.2);
+      this.playTone(40, 0.6, 'sine', 0.35);
+    }, 60);
+  }
+
+  // === BEHIND-SPAWN — whisper-to-scream ===
+  playGhostBehindReveal() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    this.playFilteredNoise(1.5, 0.12, 600, 'bandpass', 6);
+    const whisperGrowl = this.ctx.createOscillator();
+    whisperGrowl.type = 'sawtooth';
+    whisperGrowl.frequency.setValueAtTime(100, t);
+    whisperGrowl.frequency.linearRampToValueAtTime(60, t + 1);
+    whisperGrowl.frequency.linearRampToValueAtTime(200, t + 2);
+    const wgg = this.ctx.createGain();
+    wgg.gain.setValueAtTime(0.001, t);
+    wgg.gain.linearRampToValueAtTime(0.15, t + 0.5);
+    wgg.gain.linearRampToValueAtTime(0.25, t + 1.5);
+    wgg.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+    const wgf = this.ctx.createBiquadFilter();
+    wgf.type = 'bandpass'; wgf.frequency.value = 250; wgf.Q.value = 4;
+    whisperGrowl.connect(wgf); wgf.connect(wgg); wgg.connect(this.masterGain);
+    whisperGrowl.start(t); whisperGrowl.stop(t + 2.5);
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      this.playTone(18, 1, 'sine', 0.45);
+      this.playNoise(0.3, 0.35);
+      this.playTone(90, 0.6, 'square', 0.35);
+      this.playTone(95, 0.6, 'square', 0.3);
+    }, 800);
   }
 
   // Sustained tension drone during ghost approach
