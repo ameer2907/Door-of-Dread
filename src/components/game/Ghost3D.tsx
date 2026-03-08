@@ -194,6 +194,8 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
   const hasSpawned = useRef(false);
   const spawnPos = useRef(new THREE.Vector3());
   const walkBob = useRef(0);
+  const twitchTimer = useRef(0);
+  const twitchOffset = useRef({ x: 0, y: 0, z: 0 });
 
   // Calculate spawn position based on spawn type
   const getSpawnPosition = (): [number, number, number] => {
