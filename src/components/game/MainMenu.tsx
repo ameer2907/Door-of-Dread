@@ -242,6 +242,8 @@ export default function MainMenu() {
   const [showControls, setShowControls] = useState(false);
   const [entering, setEntering] = useState(false);
   const audioStarted = useRef(false);
+  const hoverTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hoverStart = useRef(0);
 
   useEffect(() => {
     if (phase !== 'menu') return;
@@ -297,6 +299,8 @@ export default function MainMenu() {
   const handleEnter = useCallback(() => {
     if (entering) return;
     setEntering(true);
+    audioManager.stopHeartbeat();
+    if (hoverTimer.current) { clearInterval(hoverTimer.current); hoverTimer.current = null; }
     audioManager.playHorrorDoorOpen();
 
     setTimeout(() => {
@@ -409,6 +413,15 @@ export default function MainMenu() {
                   0 0 120px rgba(150,0,0,0.15),
                   inset 0 0 30px rgba(255,40,40,0.15)`;
                 e.currentTarget.style.borderColor = 'hsl(0, 80%, 50%)';
+                // Start heartbeat that intensifies over time
+                hoverStart.current = Date.now();
+                audioManager.startHeartbeat(1200);
+                hoverTimer.current = setInterval(() => {
+                  const elapsed = (Date.now() - hoverStart.current) / 1000;
+                  const rate = Math.max(350, 1200 - elapsed * 150);
+                  audioManager.stopHeartbeat();
+                  audioManager.startHeartbeat(rate);
+                }, 1500);
               }
             }}
             onMouseLeave={(e) => {
@@ -417,6 +430,8 @@ export default function MainMenu() {
                   0 0 60px rgba(150,0,0,0.15),
                   inset 0 0 20px rgba(200,30,30,0.1)`;
                 e.currentTarget.style.borderColor = 'hsl(0, 70%, 35%)';
+                audioManager.stopHeartbeat();
+                if (hoverTimer.current) { clearInterval(hoverTimer.current); hoverTimer.current = null; }
               }
             }}
           >
