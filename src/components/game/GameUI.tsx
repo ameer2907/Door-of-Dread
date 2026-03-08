@@ -180,7 +180,7 @@ function HUD() {
           {config.name}
         </h2>
         <p className="text-center text-muted-foreground text-xs">
-          Room {currentRoom + 1} / 7
+          Room {currentRoom + 1} / 10
         </p>
       </div>
 
