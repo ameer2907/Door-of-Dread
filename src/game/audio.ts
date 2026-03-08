@@ -1108,61 +1108,68 @@ class AudioManager {
     };
     scheduleWhisper();
 
-    // Suspenseful piano - frequent, dark minor key with reverb
+    // Slow, cinematic horror piano — deliberate single notes with long decay
+    const menuPhrases = [
+      [55.00, 0, 8, 0.08],    // A1
+      [58.27, 2500, 7, 0.06], // Bb1 — minor 2nd
+      [51.91, 5500, 6, 0.05], // Ab1 — descending
+      
+      [65.41, 0, 7, 0.07],    // C2
+      [69.30, 2000, 6, 0.06], // C#2
+      [61.74, 4500, 5, 0.05], // B1
+
+      [73.42, 0, 8, 0.07],    // D2
+      [77.78, 3000, 6, 0.055],// Eb2
+      [69.30, 6000, 5, 0.04], // C#2
+    ];
+    let menuPhraseIdx = 0;
+    
     const schedulePiano = () => {
-      const delay = 2000 + Math.random() * 3500;
+      const delay = 5000 + Math.random() * 5000; // very slow pacing
       const timer = setTimeout(() => {
         if (!this.ctx || !this.masterGain) return;
-        // Darker note set: minor, diminished, tritone intervals
-        const notes = [
-          82.41, 87.31, 92.5, 98, 103.83, 110,
-          116.54, 123.47, 130.81, 138.59, 146.83, 155.56,
-          164.81, 174.61, 185, 196, 207.65, 220,
-        ];
-        const freq = notes[Math.floor(Math.random() * notes.length)];
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        osc.detune.value = (Math.random() - 0.5) * 15;
-        const g = this.ctx.createGain();
-        g.gain.setValueAtTime(0.055, this.ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 4.5);
-        // Triple delay for haunted reverb
-        const dly = this.ctx.createDelay();
-        dly.delayTime.value = 0.4;
-        const dly2 = this.ctx.createDelay();
-        dly2.delayTime.value = 0.9;
-        const dly3 = this.ctx.createDelay();
-        dly3.delayTime.value = 1.5;
-        const dlyG = this.ctx.createGain();
-        dlyG.gain.value = 0.03;
-        const dly2G = this.ctx.createGain();
-        dly2G.gain.value = 0.018;
-        const dly3G = this.ctx.createGain();
-        dly3G.gain.value = 0.01;
-        osc.connect(g);
-        g.connect(this.masterGain!);
-        g.connect(dly); dly.connect(dlyG); dlyG.connect(this.masterGain!);
-        g.connect(dly2); dly2.connect(dly2G); dly2G.connect(this.masterGain!);
-        g.connect(dly3); dly3.connect(dly3G); dly3G.connect(this.masterGain!);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 5);
-        // Occasional dissonant cluster
-        if (Math.random() > 0.55) {
+        const startIdx = menuPhraseIdx * 3;
+        const phrase = menuPhrases.slice(startIdx, startIdx + 3);
+        if (phrase.length === 0) { menuPhraseIdx = 0; schedulePiano(); return; }
+        menuPhraseIdx++;
+        if (menuPhraseIdx * 3 >= menuPhrases.length) menuPhraseIdx = 0;
+        
+        phrase.forEach(([freq, delayMs, dur, vol]) => {
           setTimeout(() => {
             if (!this.ctx || !this.masterGain) return;
-            const osc2 = this.ctx.createOscillator();
-            osc2.type = 'sine';
-            osc2.frequency.value = freq * 1.0595; // minor 2nd - very tense
-            const g2 = this.ctx.createGain();
-            g2.gain.setValueAtTime(0.025, this.ctx.currentTime);
-            g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
-            osc2.connect(g2);
-            g2.connect(this.masterGain!);
-            osc2.start();
-            osc2.stop(this.ctx.currentTime + 3.5);
-          }, 150 + Math.random() * 300);
-        }
+            const t = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.detune.value = (Math.random() - 0.5) * 6;
+            const g = this.ctx.createGain();
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(vol, t + 0.015);
+            g.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.6);
+            g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            // Harmonic shimmer
+            const h = this.ctx!.createOscillator();
+            h.type = 'sine';
+            h.frequency.value = freq * 2;
+            const hg = this.ctx!.createGain();
+            hg.gain.setValueAtTime(vol * 0.12, t);
+            hg.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.6);
+            // Long hall reverb
+            const d1 = this.ctx!.createDelay(); d1.delayTime.value = 0.5;
+            const d1g = this.ctx!.createGain(); d1g.gain.value = 0.035;
+            const d2 = this.ctx!.createDelay(); d2.delayTime.value = 1.3;
+            const d2g = this.ctx!.createGain(); d2g.gain.value = 0.02;
+            const d3 = this.ctx!.createDelay(); d3.delayTime.value = 2.2;
+            const d3g = this.ctx!.createGain(); d3g.gain.value = 0.01;
+            osc.connect(g); g.connect(this.masterGain!);
+            g.connect(d1); d1.connect(d1g); d1g.connect(this.masterGain!);
+            g.connect(d2); d2.connect(d2g); d2g.connect(this.masterGain!);
+            g.connect(d3); d3.connect(d3g); d3g.connect(this.masterGain!);
+            h.connect(hg); hg.connect(this.masterGain!);
+            osc.start(t); osc.stop(t + dur + 1);
+            h.start(t); h.stop(t + dur * 0.6 + 1);
+          }, delayMs);
+        });
         schedulePiano();
       }, delay);
       this.menuAmbienceTimers.push(timer);
