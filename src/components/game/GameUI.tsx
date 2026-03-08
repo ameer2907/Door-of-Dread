@@ -752,6 +752,7 @@ export default function GameUI() {
       <FlickerOverlay />
       <GhostApproachOverlay />
       <GhostAttackOverlay />
+      <RandomHorrorUI />
       <HUD />
       <MusicToggle />
       <PauseMenu />

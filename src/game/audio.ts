@@ -1405,6 +1405,130 @@ class AudioManager {
     this.menuAmbienceTimers = [];
   }
 
+  // === RANDOM HORROR EVENT SOUNDS ===
+
+  /** Random whisper from behind — directional feeling */
+  playRandomWhisper() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Breathy whisper noise
+    const bufLen = this.ctx.sampleRate * 2;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const env = Math.sin((i / bufLen) * Math.PI);
+      d[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 1200 + Math.random() * 600;
+    filt.Q.value = 4;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.035, t + 0.3);
+    g.gain.linearRampToValueAtTime(0.04, t + 0.8);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 2);
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+    // Second whisper layer offset
+    setTimeout(() => {
+      this.playFilteredNoise(1.2, 0.025, 1600, 'bandpass', 5);
+    }, 400);
+  }
+
+  /** Distant footsteps — echoing in empty halls */
+  playDistantFootsteps() {
+    if (!this.ctx || !this.masterGain) return;
+    const count = 4 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        if (!this.ctx || !this.masterGain) return;
+        const freq = 80 + Math.random() * 60;
+        this.playTone(freq, 0.06, 'sine', 0.02);
+        this.playNoise(0.04, 0.012);
+        // Echo
+        setTimeout(() => {
+          this.playTone(freq * 0.8, 0.08, 'sine', 0.008);
+        }, 150);
+      }, i * (350 + Math.random() * 100));
+    }
+  }
+
+  /** Door slamming in the distance */
+  playDistantDoorSlam() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Delayed to feel distant
+    setTimeout(() => {
+      if (!this.ctx || !this.masterGain) return;
+      this.playTone(30, 0.4, 'sine', 0.15);
+      this.playNoise(0.15, 0.12);
+      // Reverb tail
+      setTimeout(() => {
+        this.playFilteredNoise(0.8, 0.04, 200, 'lowpass');
+        this.playTone(25, 0.6, 'sine', 0.05);
+      }, 100);
+    }, 200 + Math.random() * 500);
+  }
+
+  /** Shadow movement sound — subtle, wrong */
+  playShadowMovement() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Creepy sliding noise
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.linearRampToValueAtTime(60, t + 2);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.03, t + 0.5);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+    osc.connect(g);
+    g.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 2.5);
+    // Cloth rustling
+    this.playFilteredNoise(1.5, 0.015, 800, 'bandpass', 2);
+  }
+
+  /** Cold breath on neck — intimate, close */
+  playBreathOnNeck() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    // Rhythmic breath — 2 cycles
+    const bufLen = this.ctx.sampleRate * 3;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const time = i / this.ctx.sampleRate;
+      const breathCycle = Math.sin(time * Math.PI * 2 * 0.6);
+      const env = Math.max(0, breathCycle);
+      d[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 500;
+    filt.Q.value = 1.5;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.08, t + 0.5);
+    g.gain.linearRampToValueAtTime(0.06, t + 2);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 3);
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+    // Low presence tone
+    this.playTone(50, 2, 'sine', 0.04);
+  }
+
   stopAll() {
     this.stopAmbient();
     this.stopHeartbeat();
