@@ -1,4 +1,4 @@
-export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
+export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings' | 'lore';
 export type GhostState = 'hidden' | 'watching' | 'approaching' | 'close' | 'attack';
 export type GhostSpawnType = 'doorway' | 'behind' | 'corridor' | 'shadows';
 export type GhostType = 'stalker' | 'shadow' | 'jumpscare' | 'corridor' | 'nun';
