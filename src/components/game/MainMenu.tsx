@@ -197,7 +197,7 @@ function BloodDripLetter({ char, delay, isDread }: { char: string; delay: number
 
 function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boolean }) {
   return (
-    <div className="relative px-4">
+    <div className="relative flex flex-col items-center justify-center gap-0">
       {TITLE_WORDS.map((word, i) => {
         const isVisible = i < visibleWords;
         const isDread = word === 'DREAD';
@@ -206,23 +206,26 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
         return (
           <div
             key={word}
-            className={`transition-all duration-1000 ${
+            className={`transition-all duration-1000 leading-none ${
               isVisible
                 ? 'opacity-100 translate-y-0 scale-100'
                 : 'opacity-0 translate-y-12 scale-110'
             }`}
-            style={{ transitionDelay: `${i * 150}ms` }}
+            style={{
+              transitionDelay: `${i * 150}ms`,
+              marginTop: isOf ? '-0.1em' : isDread ? '-0.15em' : 0,
+              marginBottom: isOf ? '-0.1em' : 0,
+            }}
           >
             <h1
-              className={`select-none ${glitch ? 'animate-title-glitch' : ''} ${
-                isDread
-                  ? 'text-5xl xs:text-6xl sm:text-7xl md:text-8xl lg:text-[11rem] -mt-2 sm:-mt-4 md:-mt-6'
-                  : isOf
-                  ? 'text-xl sm:text-2xl md:text-3xl lg:text-5xl -mt-1'
-                  : 'text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-9xl'
-              }`}
+              className={`select-none leading-[0.85] ${glitch ? 'animate-title-glitch' : ''}`}
               style={{
                 fontFamily: isDread ? "'Nosifer', cursive" : "'Creepster', cursive",
+                fontSize: isDread
+                  ? 'clamp(3rem, 10vw, 11rem)'
+                  : isOf
+                  ? 'clamp(1.2rem, 3vw, 3.5rem)'
+                  : 'clamp(2.5rem, 8vw, 9rem)',
                 color: isDread
                   ? 'hsl(0, 85%, 50%)'
                   : isOf
@@ -241,7 +244,7 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
                      0 0 50px rgba(255,20,20,0.4),
                      0 0 90px rgba(200,0,0,0.2),
                      0 2px 4px rgba(0,0,0,0.9)`,
-                letterSpacing: isDread ? '0.15em' : isOf ? '0.6em' : '0.1em',
+                letterSpacing: isDread ? '0.12em' : isOf ? '0.5em' : '0.08em',
                 animation: isVisible
                   ? isDread
                     ? 'neon-flicker 4s ease-in-out infinite, neon-pulse 2s ease-in-out infinite'
@@ -261,12 +264,13 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
       })}
 
       {/* Subtitle */}
-      <div className={`mt-4 sm:mt-6 transition-all duration-1500 delay-700 ${
+      <div className={`mt-3 sm:mt-5 transition-all duration-1500 delay-700 ${
         visibleWords >= 3 ? 'opacity-100' : 'opacity-0'
       }`}>
         <p
-          className="text-[10px] sm:text-xs tracking-[0.6em] sm:tracking-[1em] uppercase"
+          className="tracking-[0.5em] sm:tracking-[0.8em] uppercase"
           style={{
+            fontSize: 'clamp(0.55rem, 1.2vw, 0.8rem)',
             color: 'hsl(0, 30%, 35%)',
             textShadow: '0 0 10px rgba(200,50,50,0.3)',
             animation: visibleWords >= 3 ? 'flicker-text 5s infinite 2s' : 'none',
@@ -414,17 +418,18 @@ export default function MainMenu() {
       />
 
       {/* Content */}
-      <div className={`relative z-10 text-center w-full max-w-3xl mx-auto px-4 space-y-4 sm:space-y-6 transition-all duration-1000 ${
+      <div className={`relative z-10 flex flex-col items-center justify-center text-center w-full max-w-4xl mx-auto px-4 space-y-3 sm:space-y-5 transition-all duration-1000 ${
         introPhase === 'dark' ? 'opacity-0' : 'opacity-100'
       }`}>
         <NeonTitle visibleWords={visibleWords} glitch={glitch} />
 
         {/* Tagline */}
         <p
-          className={`font-body text-[10px] sm:text-xs md:text-sm tracking-[0.2em] sm:tracking-[0.4em] uppercase transition-all duration-1000 px-4 ${
+          className={`font-body tracking-[0.2em] sm:tracking-[0.35em] uppercase transition-all duration-1000 px-4 ${
             showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
           style={{
+            fontSize: 'clamp(0.6rem, 1.2vw, 0.85rem)',
             color: 'hsl(0, 20%, 40%)',
             textShadow: '0 0 8px rgba(150,30,30,0.3)',
           }}
