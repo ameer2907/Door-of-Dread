@@ -5,15 +5,6 @@ import { useGame } from '@/game/store';
 import { audioManager } from '@/game/audio';
 import { ROOM_CONFIGS } from '@/game/rooms';
 
-/**
- * Random horror events that occur unpredictably during gameplay:
- * - Shadow figure moving across walls
- * - Whisper sounds behind the player
- * - Lights briefly dying
- * - Distant footsteps
- * - Sudden cold breath (screen effect handled by UI)
- */
-
 interface ShadowFigure {
   active: boolean;
   position: THREE.Vector3;
@@ -24,7 +15,7 @@ interface ShadowFigure {
 }
 
 export default function RandomHorrorEvents() {
-  const { phase, currentRoom, ghostVisible, ghostState, getState, increaseFear } = useGame();
+  const { phase, currentRoom, ghostVisible, getState, increaseFear, triggerChaseMode, triggerGhostBehind, setMirrorGhost } = useGame();
   const { camera } = useThree();
 
   const eventTimer = useRef(0);
@@ -39,28 +30,39 @@ export default function RandomHorrorEvents() {
     wallSide: 'left',
   });
   const shadowMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const shadowHeadMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
   const lightFlickerRef = useRef<THREE.PointLight>(null);
   const flickerActive = useRef(false);
   const flickerTimer = useRef(0);
   const flickerDuration = useRef(0);
 
-  // Reset timers on room change
+  // Ghost-behind-player: track camera rotation for turn detection
+  const lastCameraYaw = useRef(0);
+  const totalTurnAccum = useRef(0);
+  const ghostBehindCooldown = useRef(0);
+  const chaseModeCooldown = useRef(0);
+
+  // Mirror ghost detection
+  const mirrorCheckTimer = useRef(0);
+
   useEffect(() => {
     eventTimer.current = 0;
     nextEventTime.current = 5 + Math.random() * 10;
     shadow.current.active = false;
     shadow.current.opacity = 0;
     flickerActive.current = false;
+    totalTurnAccum.current = 0;
+    ghostBehindCooldown.current = 0;
+    chaseModeCooldown.current = 15;
   }, [currentRoom]);
 
   const triggerEvent = () => {
     const gs = getState();
-    if (gs.ghostVisible || gs.isTransitioning || gs.portal.phase !== 'none') return;
+    if (gs.ghostVisible || gs.isTransitioning || gs.portal.phase !== 'none' || gs.chaseMode) return;
 
     const roomConfig = ROOM_CONFIGS[gs.currentRoom];
     const fearMult = roomConfig.fearMultiplier;
 
-    // Weight events based on room progression
     const events = [
       { type: 'shadow', weight: 3 },
       { type: 'whisper', weight: 4 },
@@ -68,6 +70,8 @@ export default function RandomHorrorEvents() {
       { type: 'footsteps', weight: 3 },
       { type: 'doorCreak', weight: 2 },
       { type: 'breathOnNeck', weight: gs.currentRoom >= 3 ? 3 : 0 },
+      { type: 'ghostBehind', weight: gs.currentRoom >= 2 ? 2 : 0 },
+      { type: 'chase', weight: gs.currentRoom >= 4 && chaseModeCooldown.current <= 0 ? 1 : 0 },
     ];
 
     const totalWeight = events.reduce((s, e) => s + e.weight, 0);
@@ -103,6 +107,17 @@ export default function RandomHorrorEvents() {
       case 'breathOnNeck':
         audioManager.playBreathOnNeck();
         increaseFear(4 * fearMult);
+        break;
+      case 'ghostBehind':
+        if (ghostBehindCooldown.current <= 0) {
+          triggerGhostBehind();
+          ghostBehindCooldown.current = 30;
+          increaseFear(5 * fearMult);
+        }
+        break;
+      case 'chase':
+        triggerChaseMode();
+        chaseModeCooldown.current = 60;
         break;
     }
   };
@@ -143,13 +158,58 @@ export default function RandomHorrorEvents() {
   useFrame((_, delta) => {
     if (phase !== 'playing') return;
     const gs = getState();
-    if (gs.ghostVisible || gs.isTransitioning || gs.portal.phase !== 'none') return;
+    if (gs.isTransitioning || gs.portal.phase !== 'none') return;
+
+    // Cooldown timers
+    if (ghostBehindCooldown.current > 0) ghostBehindCooldown.current -= delta;
+    if (chaseModeCooldown.current > 0) chaseModeCooldown.current -= delta;
+
+    // === GHOST BEHIND ON CAMERA TURN ===
+    const currentYaw = camera.rotation.y;
+    const yawDelta = Math.abs(currentYaw - lastCameraYaw.current);
+    if (yawDelta > 0.05 && yawDelta < Math.PI) {
+      totalTurnAccum.current += yawDelta;
+    }
+    lastCameraYaw.current = currentYaw;
+
+    // If player turns >180 degrees rapidly, chance to spawn ghost behind
+    if (totalTurnAccum.current > Math.PI && !gs.ghostVisible && !gs.chaseMode && ghostBehindCooldown.current <= 0 && gs.currentRoom >= 2) {
+      if (Math.random() < 0.15) {
+        triggerGhostBehind();
+        ghostBehindCooldown.current = 40;
+        totalTurnAccum.current = 0;
+      } else {
+        totalTurnAccum.current = 0;
+      }
+    }
+    // Decay accumulator
+    totalTurnAccum.current = Math.max(0, totalTurnAccum.current - delta * 0.5);
+
+    // === MIRROR GHOST DETECTION ===
+    if (ROOM_CONFIGS[gs.currentRoom].roomTheme === 'mirror' && !gs.ghostVisible) {
+      mirrorCheckTimer.current += delta;
+      if (mirrorCheckTimer.current > 3) {
+        mirrorCheckTimer.current = 0;
+        // Check if player is facing a mirror wall
+        const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const facingLeft = fwd.x < -0.6;
+        const facingRight = fwd.x > 0.6;
+        const facingBack = fwd.z > 0.6;
+
+        if ((facingLeft || facingRight || facingBack) && Math.random() < 0.2) {
+          setMirrorGhost(true);
+          setTimeout(() => setMirrorGhost(false), 2000);
+        }
+      }
+    }
+
+    // Skip event scheduling if ghost is active
+    if (gs.ghostVisible || gs.chaseMode) return;
 
     // Event scheduling
     eventTimer.current += delta;
     if (eventTimer.current >= nextEventTime.current) {
       eventTimer.current = 0;
-      // Events happen more frequently in later rooms
       const roomFactor = Math.max(0.3, 1 - gs.currentRoom * 0.06);
       nextEventTime.current = (6 + Math.random() * 15) * roomFactor;
       triggerEvent();
@@ -161,9 +221,8 @@ export default function RandomHorrorEvents() {
       const dir = new THREE.Vector3().subVectors(s.targetPosition, s.position).normalize();
       s.position.addScaledVector(dir, delta * s.speed);
 
-      // Fade in then out
       const dist = s.position.distanceTo(s.targetPosition);
-      const totalDist = 8; // approximate wall length
+      const totalDist = 8;
       const progress = 1 - dist / totalDist;
       if (progress < 0.15) {
         s.opacity = Math.min(s.opacity + delta * 3, 0.6);
@@ -176,7 +235,6 @@ export default function RandomHorrorEvents() {
 
       if (shadowRef.current) {
         shadowRef.current.position.copy(s.position);
-        // Face the wall
         switch (s.wallSide) {
           case 'left': shadowRef.current.rotation.set(0, Math.PI / 2, 0); break;
           case 'right': shadowRef.current.rotation.set(0, -Math.PI / 2, 0); break;
@@ -186,13 +244,15 @@ export default function RandomHorrorEvents() {
       if (shadowMaterialRef.current) {
         shadowMaterialRef.current.opacity = s.opacity;
       }
+      if (shadowHeadMaterialRef.current) {
+        shadowHeadMaterialRef.current.opacity = s.opacity * 0.8;
+      }
     }
 
     // Light flicker
     if (flickerActive.current && lightFlickerRef.current) {
       flickerTimer.current += delta;
       if (flickerTimer.current < flickerDuration.current) {
-        // Random intense flickering
         lightFlickerRef.current.intensity = Math.random() > 0.5 ? 0 : Math.random() * 3;
       } else {
         lightFlickerRef.current.intensity = 0;
@@ -207,7 +267,6 @@ export default function RandomHorrorEvents() {
     <group>
       {/* Shadow figure on wall */}
       <group ref={shadowRef}>
-        {/* Humanoid shadow silhouette - flat against wall */}
         <mesh>
           <planeGeometry args={[0.8, 2.5]} />
           <meshStandardMaterial
@@ -219,20 +278,19 @@ export default function RandomHorrorEvents() {
             depthWrite={false}
           />
         </mesh>
-        {/* Head */}
         <mesh position={[0, 1.0, 0.01]}>
           <circleGeometry args={[0.2, 12]} />
           <meshStandardMaterial
+            ref={shadowHeadMaterialRef}
             color="#000000"
             transparent
-            opacity={shadow.current.opacity * 0.8}
+            opacity={0}
             side={THREE.DoubleSide}
             depthWrite={false}
           />
         </mesh>
       </group>
 
-      {/* Flicker override light - goes to 0 to create darkness */}
       <pointLight
         ref={lightFlickerRef}
         position={[0, 3.5, 0]}

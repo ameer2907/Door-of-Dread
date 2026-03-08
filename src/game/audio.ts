@@ -1529,6 +1529,77 @@ class AudioManager {
     this.playTone(50, 2, 'sine', 0.04);
   }
 
+  /** Intense chase music — pounding, urgent, terrifying */
+  playChaseMusic() {
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+
+    // Layer 1: Fast pounding bass drum
+    for (let i = 0; i < 16; i++) {
+      const beatTime = t + i * 0.25;
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(60, beatTime);
+      osc.frequency.exponentialRampToValueAtTime(30, beatTime + 0.15);
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(0.35, beatTime);
+      g.gain.exponentialRampToValueAtTime(0.001, beatTime + 0.2);
+      osc.connect(g);
+      g.connect(this.masterGain);
+      osc.start(beatTime);
+      osc.stop(beatTime + 0.25);
+    }
+
+    // Layer 2: Shrieking dissonant strings
+    const str1 = this.ctx.createOscillator();
+    str1.type = 'sawtooth';
+    str1.frequency.setValueAtTime(400, t);
+    str1.frequency.linearRampToValueAtTime(800, t + 4);
+    const str1g = this.ctx.createGain();
+    str1g.gain.setValueAtTime(0.001, t);
+    str1g.gain.linearRampToValueAtTime(0.15, t + 1);
+    str1g.gain.linearRampToValueAtTime(0.2, t + 3);
+    str1g.gain.exponentialRampToValueAtTime(0.001, t + 5);
+    const str1f = this.ctx.createBiquadFilter();
+    str1f.type = 'bandpass'; str1f.frequency.value = 1200; str1f.Q.value = 2;
+    str1.connect(str1f); str1f.connect(str1g); str1g.connect(this.masterGain);
+    str1.start(t); str1.stop(t + 5);
+
+    // Layer 3: Detuned second string
+    const str2 = this.ctx.createOscillator();
+    str2.type = 'sawtooth';
+    str2.frequency.setValueAtTime(407, t);
+    str2.frequency.linearRampToValueAtTime(820, t + 4);
+    const str2g = this.ctx.createGain();
+    str2g.gain.setValueAtTime(0.001, t);
+    str2g.gain.linearRampToValueAtTime(0.1, t + 1);
+    str2g.gain.exponentialRampToValueAtTime(0.001, t + 5);
+    str2.connect(str2g); str2g.connect(this.masterGain);
+    str2.start(t); str2.stop(t + 5);
+
+    // Layer 4: Rushing wind noise
+    this.playFilteredNoise(5, 0.12, 500, 'bandpass', 1);
+
+    // Layer 5: Demonic low brass
+    const brass = this.ctx.createOscillator();
+    brass.type = 'sawtooth';
+    brass.frequency.value = 80;
+    const bg = this.ctx.createGain();
+    bg.gain.setValueAtTime(0.2, t);
+    bg.gain.exponentialRampToValueAtTime(0.001, t + 4);
+    const bf = this.ctx.createBiquadFilter();
+    bf.type = 'lowpass'; bf.frequency.value = 300;
+    brass.connect(bf); bf.connect(bg); bg.connect(this.masterGain);
+    brass.start(t); brass.stop(t + 4);
+
+    // Layer 6: Off-beat snare hits
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        this.playNoise(0.06, 0.15);
+      }, (i * 500) + 250);
+    }
+  }
+
   stopAll() {
     this.stopAmbient();
     this.stopHeartbeat();

@@ -198,7 +198,6 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
   // Calculate spawn position based on spawn type
   const getSpawnPosition = (): [number, number, number] => {
     if (spawnType === 'behind') {
-      // Spawn RIGHT behind the player — very close for maximum scare
       const behindDir = new THREE.Vector3(0, 0, 1);
       behindDir.applyQuaternion(camera.quaternion);
       behindDir.y = 0;
@@ -216,7 +215,15 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
       const corners: [number, number, number][] = [[-4, 0, -4], [4, 0, -4], [-4, 0, 4], [4, 0, 4]];
       return corners[Math.floor(Math.random() * corners.length)];
     }
-    // Default: doorway — from inside the opened door
+    if (spawnType === 'ceiling') {
+      // Spawn on ceiling, drops down — maximum creep
+      return [
+        camera.position.x + (Math.random() - 0.5) * 3,
+        3.8,
+        camera.position.z - 2 + Math.random() * 2
+      ];
+    }
+    // Default: doorway
     if (spawnDoorIndex !== null && spawnDoorIndex !== undefined && DOOR_POSITIONS[spawnDoorIndex]) {
       const doorPos = DOOR_POSITIONS[spawnDoorIndex];
       return [doorPos[0], 0, doorPos[2] - 2.5];
@@ -286,6 +293,16 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
     const walkY = isWalking ? Math.abs(Math.sin(walkBob.current)) * 0.06 : 0;
     const floatY = isWalking ? walkY : Math.sin(floatOffset.current) * 0.1;
     floatOffset.current += delta * 1.5;
+
+    // Ceiling spawn: ghost descends from ceiling
+    if (spawnType === 'ceiling' && spawnTime.current < 2.0) {
+      const descend = Math.min(spawnTime.current / 2.0, 1);
+      const easeOut = 1 - Math.pow(1 - descend, 3);
+      groupRef.current.position.y = 3.8 - easeOut * 3.8; // drop from ceiling to floor
+      // Spider-like rotation during descent
+      groupRef.current.rotation.x = (1 - easeOut) * Math.PI; // upside down → right side up
+      groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
+    }
 
     const target = getTargetPosition();
     const targetVec = new THREE.Vector3(target[0], target[1], target[2]);
