@@ -415,65 +415,89 @@ class AudioManager {
 
   private _startPianoLoop() {
     if (!this.ctx || !this.musicGain) return;
-    // Dark minor key / diminished notes for maximum tension
-    const notes = [
-      82.41, 87.31, 98, 103.83, 110, 116.54, // low register - dark
-      123.47, 130.81, 138.59, 146.83, 155.56, // mid register - dissonant
-      164.81, 174.61, 185, 196, 207.65,        // upper mid
+    // Slow, deliberate horror piano — think "The Shining" / "Insidious"
+    // Minor 2nds, tritones, diminished chords — deeply unsettling intervals
+    const darkPhrases = [
+      // Each phrase is [note, delayMs, duration, volume] — slow, deliberate
+      [65.41, 0, 6, 0.07],    // C2 — deep, ominous
+      [69.30, 1800, 5, 0.05], // C#2 — minor 2nd = maximum dread
+      [65.41, 3800, 4, 0.04], // repeat root — lingering
+      
+      [87.31, 0, 6, 0.065],   // F2
+      [92.50, 2200, 5, 0.05], // F#2 — tritone region
+      [82.41, 4500, 4, 0.04], // E2 — descending = despair
+      
+      [110, 0, 6, 0.06],      // A2
+      [116.54, 1500, 5, 0.055],// Bb2 — minor 2nd
+      [103.83, 3500, 5, 0.04], // Ab2 — chromatic descent
+      
+      [73.42, 0, 7, 0.07],    // D2 — very low, ominous
+      [69.30, 2500, 5, 0.05], // C#2 — half step down = sinister
+      [77.78, 5000, 4, 0.04], // Eb2 — minor 3rd above root
+      
+      [55.00, 0, 8, 0.08],    // A1 — extremely low, dread
+      [58.27, 3000, 6, 0.06], // Bb1 — minor 2nd in bass = terrifying
     ];
-    const playNote = () => {
+    
+    let phraseIdx = 0;
+    
+    const playPhrase = () => {
       if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
-      const freq = notes[Math.floor(Math.random() * notes.length)];
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      osc.detune.value = (Math.random() - 0.5) * 20;
-      const g = this.ctx.createGain();
-      g.gain.setValueAtTime(0.06, this.ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 5);
-      // Reverb delays for haunted piano feel
-      const delay1 = this.ctx.createDelay();
-      delay1.delayTime.value = 0.35;
-      const d1g = this.ctx.createGain();
-      d1g.gain.value = 0.035;
-      const delay2 = this.ctx.createDelay();
-      delay2.delayTime.value = 0.8;
-      const d2g = this.ctx.createGain();
-      d2g.gain.value = 0.02;
-      const delay3 = this.ctx.createDelay();
-      delay3.delayTime.value = 1.4;
-      const d3g = this.ctx.createGain();
-      d3g.gain.value = 0.012;
-      osc.connect(g);
-      g.connect(this.musicGain!);
-      g.connect(delay1); delay1.connect(d1g); d1g.connect(this.musicGain!);
-      g.connect(delay2); delay2.connect(d2g); d2g.connect(this.musicGain!);
-      g.connect(delay3); delay3.connect(d3g); d3g.connect(this.musicGain!);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 5.5);
-      // Occasional dissonant double-note (minor 2nd)
-      if (Math.random() > 0.6) {
+      const startIdx = phraseIdx * 3;
+      const phrase = darkPhrases.slice(startIdx, startIdx + 3);
+      if (phrase.length === 0) { phraseIdx = 0; playPhrase(); return; }
+      phraseIdx++;
+      if (phraseIdx * 3 >= darkPhrases.length) phraseIdx = 0;
+      
+      phrase.forEach(([freq, delayMs, dur, vol]) => {
         setTimeout(() => {
           if (!this.musicPlaying || !this.ctx || !this.musicGain) return;
-          const osc2 = this.ctx.createOscillator();
-          osc2.type = 'sine';
-          osc2.frequency.value = freq * 1.0595; // semitone up = dissonant
-          const g2 = this.ctx.createGain();
-          g2.gain.setValueAtTime(0.03, this.ctx.currentTime);
-          g2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
-          osc2.connect(g2);
-          g2.connect(this.musicGain!);
-          osc2.start();
-          osc2.stop(this.ctx.currentTime + 3.5);
-        }, 200 + Math.random() * 400);
-      }
+          const t = this.ctx.currentTime;
+          // Main note with slow attack — piano hammer feel
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          osc.detune.value = (Math.random() - 0.5) * 8; // subtle detuning
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(0.001, t);
+          g.gain.linearRampToValueAtTime(vol, t + 0.02); // sharp attack
+          g.gain.exponentialRampToValueAtTime(vol * 0.6, t + 0.5); // sustain decay
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur); // long tail
+          
+          // Sympathetic string resonance (2nd harmonic, very quiet)
+          const harm = this.ctx!.createOscillator();
+          harm.type = 'sine';
+          harm.frequency.value = freq * 2;
+          const hg = this.ctx!.createGain();
+          hg.gain.setValueAtTime(vol * 0.15, t);
+          hg.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.7);
+          
+          // Long reverb tail — cavernous, haunted hall
+          const dly1 = this.ctx!.createDelay(); dly1.delayTime.value = 0.45;
+          const dly1g = this.ctx!.createGain(); dly1g.gain.value = 0.04;
+          const dly2 = this.ctx!.createDelay(); dly2.delayTime.value = 1.1;
+          const dly2g = this.ctx!.createGain(); dly2g.gain.value = 0.025;
+          const dly3 = this.ctx!.createDelay(); dly3.delayTime.value = 2.0;
+          const dly3g = this.ctx!.createGain(); dly3g.gain.value = 0.015;
+          
+          osc.connect(g); g.connect(this.musicGain!);
+          g.connect(dly1); dly1.connect(dly1g); dly1g.connect(this.musicGain!);
+          g.connect(dly2); dly2.connect(dly2g); dly2g.connect(this.musicGain!);
+          g.connect(dly3); dly3.connect(dly3g); dly3g.connect(this.musicGain!);
+          harm.connect(hg); hg.connect(this.musicGain!);
+          
+          osc.start(t); osc.stop(t + dur + 0.5);
+          harm.start(t); harm.stop(t + dur * 0.7 + 0.5);
+        }, delayMs);
+      });
     };
+    
     const scheduleNext = () => {
       if (!this.musicPlaying) return;
-      const d = 2500 + Math.random() * 3500; // more frequent
-      setTimeout(() => { playNote(); scheduleNext(); }, d);
+      const d = 6000 + Math.random() * 4000; // slower pacing — more dread
+      setTimeout(() => { playPhrase(); scheduleNext(); }, d);
     };
-    setTimeout(() => { playNote(); scheduleNext(); }, 1500);
+    setTimeout(() => { playPhrase(); scheduleNext(); }, 2000);
   }
 
   stopMusic() {
