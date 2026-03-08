@@ -526,7 +526,7 @@ function SettingsMenu() {
         </div>
 
         <button
-          onClick={() => setPhase('paused')}
+          onClick={() => setPhase('menu')}
           className="w-full py-3 bg-secondary text-foreground rounded-md
                      hover:bg-muted transition-colors font-body"
         >

@@ -20,7 +20,6 @@ function LightningFlash() {
           setFlash(true);
           setTimeout(() => setFlash(false), 30);
         }, 130);
-        // Occasional double flash
         if (Math.random() > 0.6) {
           setTimeout(() => {
             setFlash(true);
@@ -59,7 +58,6 @@ function FogLayer() {
           }}
         />
       ))}
-      {/* Low crawling fog */}
       <div
         className="absolute bottom-0 left-0 right-0 h-[40%]"
         style={{
@@ -122,7 +120,7 @@ function ScreenGrain() {
 
 function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boolean }) {
   return (
-    <div className="relative">
+    <div className="relative px-4">
       {TITLE_WORDS.map((word, i) => {
         const isVisible = i < visibleWords;
         const isDread = word === 'DREAD';
@@ -141,10 +139,10 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
             <h1
               className={`select-none ${glitch ? 'animate-title-glitch' : ''} ${
                 isDread
-                  ? 'text-8xl md:text-[11rem] -mt-4 md:-mt-6'
+                  ? 'text-5xl xs:text-6xl sm:text-7xl md:text-8xl lg:text-[11rem] -mt-2 sm:-mt-4 md:-mt-6'
                   : isOf
-                  ? 'text-3xl md:text-5xl -mt-1'
-                  : 'text-7xl md:text-9xl'
+                  ? 'text-xl sm:text-2xl md:text-3xl lg:text-5xl -mt-1'
+                  : 'text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-9xl'
               }`}
               style={{
                 fontFamily: isDread ? "'Nosifer', cursive" : "'Creepster', cursive",
@@ -166,7 +164,7 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
                      0 0 50px rgba(255,20,20,0.4),
                      0 0 90px rgba(200,0,0,0.2),
                      0 2px 4px rgba(0,0,0,0.9)`,
-                letterSpacing: isDread ? '0.25em' : isOf ? '0.6em' : '0.15em',
+                letterSpacing: isDread ? '0.15em' : isOf ? '0.6em' : '0.1em',
                 animation: isVisible
                   ? isDread
                     ? 'neon-flicker 4s ease-in-out infinite, neon-pulse 2s ease-in-out infinite'
@@ -182,11 +180,11 @@ function NeonTitle({ visibleWords, glitch }: { visibleWords: number; glitch: boo
       })}
 
       {/* Subtitle */}
-      <div className={`mt-6 transition-all duration-1500 delay-700 ${
+      <div className={`mt-4 sm:mt-6 transition-all duration-1500 delay-700 ${
         visibleWords >= 3 ? 'opacity-100' : 'opacity-0'
       }`}>
         <p
-          className="text-xs tracking-[1em] uppercase"
+          className="text-[10px] sm:text-xs tracking-[0.6em] sm:tracking-[1em] uppercase"
           style={{
             color: 'hsl(0, 30%, 35%)',
             textShadow: '0 0 10px rgba(200,50,50,0.3)',
@@ -223,7 +221,6 @@ export default function MainMenu() {
 
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    // Phase 1: Dark screen with wind (0-1.5s)
     timers.push(setTimeout(() => {
       setIntroPhase('ambient');
       if (!audioStarted.current) {
@@ -235,12 +232,10 @@ export default function MainMenu() {
       }
     }, 500));
 
-    // Phase 2: Background fades in (1.5-3s)
     timers.push(setTimeout(() => {
       setIntroPhase('title');
     }, 1800));
 
-    // Phase 3: Title words appear (3s+)
     TITLE_WORDS.forEach((_, i) => {
       timers.push(setTimeout(() => {
         setVisibleWords(i + 1);
@@ -248,14 +243,12 @@ export default function MainMenu() {
       }, 3000 + i * 1400));
     });
 
-    // Glitch after all words
     const glitchTime = 3000 + TITLE_WORDS.length * 1400 + 600;
     timers.push(setTimeout(() => {
       setGlitch(true);
       setTimeout(() => setGlitch(false), 300);
     }, glitchTime));
 
-    // Show buttons
     timers.push(setTimeout(() => {
       setIntroPhase('ready');
       setShowButtons(true);
@@ -271,7 +264,6 @@ export default function MainMenu() {
     setEntering(true);
     audioManager.playHorrorDoorOpen();
 
-    // Transition out
     setTimeout(() => {
       audioManager.stopMenuAmbience();
       startGame();
@@ -337,14 +329,14 @@ export default function MainMenu() {
       />
 
       {/* Content */}
-      <div className={`relative z-10 text-center space-y-6 transition-all duration-1000 ${
+      <div className={`relative z-10 text-center w-full max-w-3xl mx-auto px-4 space-y-4 sm:space-y-6 transition-all duration-1000 ${
         introPhase === 'dark' ? 'opacity-0' : 'opacity-100'
       }`}>
         <NeonTitle visibleWords={visibleWords} glitch={glitch} />
 
         {/* Tagline */}
         <p
-          className={`font-body text-sm tracking-[0.4em] uppercase transition-all duration-1000 ${
+          className={`font-body text-[10px] sm:text-xs md:text-sm tracking-[0.2em] sm:tracking-[0.4em] uppercase transition-all duration-1000 px-4 ${
             showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
           style={{
@@ -357,14 +349,14 @@ export default function MainMenu() {
 
         {/* Buttons */}
         <div
-          className={`space-y-4 pt-6 transition-all duration-700 ${
+          className={`space-y-3 sm:space-y-4 pt-4 sm:pt-6 transition-all duration-700 ${
             showButtons ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
         >
           <button
             onClick={handleEnter}
             disabled={entering}
-            className="group block w-72 mx-auto py-5 rounded-lg relative overflow-hidden
+            className="group block w-56 sm:w-64 md:w-72 mx-auto py-3 sm:py-4 md:py-5 rounded-lg relative overflow-hidden
                        transition-all duration-500 hover:scale-105 active:scale-100
                        border-2"
             style={{
@@ -394,7 +386,7 @@ export default function MainMenu() {
             }}
           >
             <span
-              className="relative z-10 text-3xl tracking-[0.4em]"
+              className="relative z-10 text-xl sm:text-2xl md:text-3xl tracking-[0.3em] sm:tracking-[0.4em]"
               style={{
                 fontFamily: "'Creepster', cursive",
                 color: entering ? 'hsl(0, 60%, 35%)' : 'hsl(0, 70%, 60%)',
@@ -418,7 +410,7 @@ export default function MainMenu() {
 
           <button
             onClick={() => setPhase('settings')}
-            className="block w-72 mx-auto py-3 rounded-lg font-body text-sm tracking-[0.3em] uppercase
+            className="block w-56 sm:w-64 md:w-72 mx-auto py-2 sm:py-3 rounded-lg font-body text-xs sm:text-sm tracking-[0.3em] uppercase
                        transition-all duration-300 border backdrop-blur-sm
                        hover:scale-[1.02]"
             style={{
@@ -439,19 +431,29 @@ export default function MainMenu() {
           </button>
         </div>
 
-        {/* Controls info */}
+        {/* Controls info - hidden on very small screens */}
         <div
-          className={`pt-8 space-y-2 transition-all duration-700 ${
+          className={`pt-4 sm:pt-8 space-y-1 sm:space-y-2 transition-all duration-700 hidden sm:block ${
             showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
           }`}
         >
-          <p className="text-xs font-body tracking-[0.2em]"
+          <p className="text-[10px] sm:text-xs font-body tracking-[0.15em] sm:tracking-[0.2em]"
              style={{ color: 'hsl(0, 0%, 25%)' }}>
             WASD / Arrow Keys to move · Mouse to look · E to interact
           </p>
-          <p className="text-xs font-body tracking-[0.2em]"
+          <p className="text-[10px] sm:text-xs font-body tracking-[0.15em] sm:tracking-[0.2em]"
              style={{ color: 'hsl(0, 0%, 25%)' }}>
             ESC to pause · SHIFT to sprint · Touch joystick on mobile
+          </p>
+        </div>
+
+        {/* Mobile-only touch hint */}
+        <div className={`pt-4 sm:hidden transition-all duration-700 ${
+          showControls ? 'opacity-100' : 'opacity-0'
+        }`}>
+          <p className="text-[10px] font-body tracking-[0.15em]"
+             style={{ color: 'hsl(0, 0%, 25%)' }}>
+            Tap doors to open · Use joystick to move
           </p>
         </div>
       </div>
