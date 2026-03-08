@@ -80,19 +80,71 @@ export default function PlayerController() {
   useFrame((state, delta) => {
     const gs = getState();
     
-    // Intro wake-up animation
+    // === CINEMATIC WAKE-UP SEQUENCE ===
     if (gs.phase === 'intro' && introStarted.current) {
       introTime.current += delta;
       const t = introTime.current;
-      const duration = 4.0;
-      if (t < duration) {
-        const progress = Math.min(t / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
-        camera.position.y = 0.2 + ease * 1.5;
-        camera.rotation.x = -Math.PI / 2 + ease * Math.PI / 2;
-        if (t > 0.5) {
-          const sway = Math.sin(t * 2) * 0.02 * (1 - ease);
-          camera.rotation.z = sway;
+      const totalDuration = 8.0;
+
+      if (t < totalDuration) {
+        // Phase 1 (0-1.5s): Face down on floor, slight head twitch
+        if (t < 1.5) {
+          camera.position.y = 0.15;
+          camera.rotation.x = -Math.PI / 2;
+          // Small twitches like regaining consciousness
+          const twitch = Math.sin(t * 8) * 0.02 * Math.min(t / 1.0, 1);
+          camera.rotation.z = twitch;
+        }
+        // Phase 2 (1.5-3.5s): Head slowly lifts off floor, looking ahead at ground level
+        else if (t < 3.5) {
+          const p = (t - 1.5) / 2.0;
+          const ease = 1 - Math.pow(1 - p, 2);
+          camera.position.y = 0.15 + ease * 0.25; // raise head slightly
+          camera.rotation.x = -Math.PI / 2 + ease * (Math.PI / 3); // tilt head up ~60deg
+          // Wobbly disorientation
+          camera.rotation.z = Math.sin(t * 3) * 0.03 * (1 - ease * 0.5);
+          camera.rotation.y = Math.sin(t * 1.7) * 0.04 * (1 - ease * 0.7);
+        }
+        // Phase 3 (3.5-5.5s): Push up from floor to knees
+        else if (t < 5.5) {
+          const p = (t - 3.5) / 2.0;
+          const ease = 1 - Math.pow(1 - p, 3);
+          camera.position.y = 0.4 + ease * 0.6; // rise to ~1.0 (kneeling)
+          camera.rotation.x = -Math.PI / 6 + ease * (Math.PI / 8); // looking slightly down then leveling
+          // Stagger/sway while pushing up
+          camera.rotation.z = Math.sin(t * 2.5) * 0.04 * (1 - ease * 0.6);
+          camera.rotation.y = Math.sin(t * 1.3) * 0.06 * (1 - ease * 0.8);
+          // Slight forward lean recovery
+          camera.position.z = 3 + Math.sin(t * 1.8) * 0.05 * (1 - ease);
+        }
+        // Phase 4 (5.5-7.5s): Stand up fully, stabilize, face the doors
+        else if (t < 7.5) {
+          const p = (t - 5.5) / 2.0;
+          const ease = 1 - Math.pow(1 - p, 2);
+          camera.position.y = 1.0 + ease * 0.7; // rise to standing height 1.7
+          // Gradually look forward toward doors
+          camera.rotation.x = -Math.PI / 24 * (1 - ease); // level out
+          camera.rotation.z = Math.sin(t * 2) * 0.015 * (1 - ease); // stabilize sway
+          camera.rotation.y = camera.rotation.y * (1 - ease * 0.1); // center forward
+
+          // Final forward look direction
+          if (ease > 0.7) {
+            const lookBlend = (ease - 0.7) / 0.3;
+            const targetY = 0; // face forward
+            camera.rotation.y = camera.rotation.y * (1 - lookBlend) + targetY * lookBlend;
+          }
+        }
+        // Phase 5 (7.5-8.0s): Final settle
+        else {
+          const p = (t - 7.5) / 0.5;
+          const ease = Math.min(p, 1);
+          camera.position.set(0, 1.7, 3);
+          camera.rotation.x = 0;
+          camera.rotation.z = Math.sin(t * 1.5) * 0.005 * (1 - ease);
+          camera.rotation.y = 0;
+          // Breathing starts
+          const breathe = Math.sin(t * 1.8) * 0.005;
+          camera.position.y = 1.7 + breathe;
         }
       } else {
         camera.position.set(0, 1.7, 3);
