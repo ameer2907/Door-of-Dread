@@ -578,48 +578,140 @@ function TransitionOverlay() {
 
 function IntroOverlay() {
   const { phase } = useGame();
-  const [opacity, setOpacity] = useState(1);
-  const [showText, setShowText] = useState(false);
+  const [blackOpacity, setBlackOpacity] = useState(1);
+  const [eyeOpenAmount, setEyeOpenAmount] = useState(0); // 0 = closed, 1 = fully open
+  const [blurAmount, setBlurAmount] = useState(20);
+  const [textPhase, setTextPhase] = useState(0); // 0=none, 1="...", 2="Wake up...", 3="Where am I...", 4="Something is wrong", 5=none
+  const [heartbeatPulse, setHeartbeatPulse] = useState(false);
 
   useEffect(() => {
     if (phase === 'intro') {
-      setOpacity(1);
-      setShowText(true);
-      // Fade the black overlay as player wakes up
-      const t1 = setTimeout(() => setOpacity(0.7), 500);
-      const t2 = setTimeout(() => setOpacity(0.3), 1500);
-      const t3 = setTimeout(() => setShowText(false), 2500);
-      const t4 = setTimeout(() => setOpacity(0), 3000);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+      setBlackOpacity(1);
+      setEyeOpenAmount(0);
+      setBlurAmount(20);
+      setTextPhase(0);
+      setHeartbeatPulse(false);
+
+      const timers: ReturnType<typeof setTimeout>[] = [];
+
+      // Phase 1 (0-1.5s): Darkness, first blink attempt
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.1); setBlackOpacity(0.9); }, 800));
+      timers.push(setTimeout(() => { setEyeOpenAmount(0); setBlackOpacity(1); }, 1100)); // blink shut
+      timers.push(setTimeout(() => setTextPhase(1), 1000)); // "..."
+
+      // Phase 2 (1.5-3.5s): Eyes start opening, blurry
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.25); setBlackOpacity(0.7); setBlurAmount(15); }, 1500));
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.15); }, 1900)); // flutter
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.35); setBlackOpacity(0.5); setBlurAmount(12); }, 2200));
+      timers.push(setTimeout(() => { setTextPhase(2); setHeartbeatPulse(true); }, 2000)); // "Wake up..."
+
+      // Phase 3 (3.5-5.5s): Eyes opening more, vision clearing
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.55); setBlackOpacity(0.3); setBlurAmount(8); }, 3500));
+      timers.push(setTimeout(() => { setTextPhase(3); }, 3800)); // "Where am I..."
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.7); setBlurAmount(5); }, 4200));
+
+      // Phase 4 (5.5-7s): Standing up, vision nearly clear
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.85); setBlackOpacity(0.15); setBlurAmount(3); }, 5500));
+      timers.push(setTimeout(() => { setTextPhase(4); }, 5800)); // "Something is wrong"
+      timers.push(setTimeout(() => { setEyeOpenAmount(0.95); setBlurAmount(1); }, 6500));
+
+      // Phase 5 (7-8s): Fully awake
+      timers.push(setTimeout(() => { setTextPhase(5); }, 7000)); // clear text
+      timers.push(setTimeout(() => { setEyeOpenAmount(1); setBlackOpacity(0); setBlurAmount(0); setHeartbeatPulse(false); }, 7500));
+
+      return () => timers.forEach(clearTimeout);
     }
   }, [phase]);
 
   if (phase !== 'intro' && phase !== 'playing') return null;
-  if (phase === 'playing' && opacity === 0) return null;
+  if (phase === 'playing' && blackOpacity === 0 && eyeOpenAmount >= 1) return null;
+
+  const eyeBarHeight = `${Math.max(0, (1 - eyeOpenAmount) * 50)}%`;
+
+  const introTexts = ['', '...', 'Wake up...', 'Where am I...', 'Something is wrong', ''];
+  const currentText = introTexts[textPhase] || '';
 
   return (
     <div
-      className="fixed inset-0 z-40 pointer-events-none transition-opacity duration-1000"
-      style={{ opacity }}
+      className="fixed inset-0 z-40 pointer-events-none"
+      style={{ transition: 'opacity 0.5s' }}
     >
-      <div className="absolute inset-0 bg-black" />
-      {/* Blur / vision clearing effect */}
+      {/* Overall darkness */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 bg-black transition-opacity duration-700"
+        style={{ opacity: blackOpacity }}
+      />
+
+      {/* Eye-opening effect - top eyelid */}
+      <div
+        className="absolute top-0 left-0 right-0 bg-black z-[41] transition-all duration-700"
+        style={{ height: eyeBarHeight }}
+      />
+      {/* Eye-opening effect - bottom eyelid */}
+      <div
+        className="absolute bottom-0 left-0 right-0 bg-black z-[41] transition-all duration-700"
+        style={{ height: eyeBarHeight }}
+      />
+
+      {/* Blur / unfocused vision */}
+      {blurAmount > 0 && (
+        <div
+          className="absolute inset-0 z-[42] transition-all duration-1000"
+          style={{
+            backdropFilter: `blur(${blurAmount}px)`,
+            WebkitBackdropFilter: `blur(${blurAmount}px)`,
+          }}
+        />
+      )}
+
+      {/* Vignette that intensifies when waking */}
+      <div
+        className="absolute inset-0 z-[43]"
         style={{
-          background: 'radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%)',
+          boxShadow: `inset 0 0 ${150 + (1 - eyeOpenAmount) * 200}px rgba(0, 0, 0, ${0.5 + (1 - eyeOpenAmount) * 0.5})`,
+          transition: 'box-shadow 0.8s',
         }}
       />
-      {showText && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center space-y-2 animate-fade-in">
-            <p className="font-horror text-xl text-muted-foreground/60 tracking-[0.4em]"
-               style={{ animation: 'flicker-text 3s infinite' }}>
-              Wake up...
+
+      {/* Heartbeat red pulse */}
+      {heartbeatPulse && (
+        <div
+          className="absolute inset-0 z-[44]"
+          style={{
+            background: 'radial-gradient(circle, transparent 40%, rgba(80, 0, 0, 0.15) 100%)',
+            animation: 'blood-pulse 1.2s ease-in-out infinite alternate',
+          }}
+        />
+      )}
+
+      {/* Text overlay */}
+      {currentText && (
+        <div className="absolute inset-0 z-[45] flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <p
+              className="font-horror text-lg sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em]"
+              style={{
+                color: textPhase === 4 ? 'hsl(0, 60%, 50%)' : 'hsl(0, 10%, 50%)',
+                textShadow: textPhase === 4
+                  ? '0 0 20px rgba(200, 0, 0, 0.5), 0 0 40px rgba(150, 0, 0, 0.3)'
+                  : '0 0 10px rgba(150, 150, 150, 0.2)',
+                animation: 'flicker-text 3s infinite',
+                transition: 'color 0.5s',
+              }}
+            >
+              {currentText}
             </p>
-            <p className="text-muted-foreground/30 text-xs font-body tracking-widest">
-              Something is wrong
-            </p>
+            {textPhase >= 3 && (
+              <p
+                className="text-xs font-body tracking-[0.3em] uppercase"
+                style={{
+                  color: 'hsl(0, 0%, 30%)',
+                  animation: 'fade-in 1s ease-out',
+                }}
+              >
+                {textPhase === 4 ? 'Find the way out' : 'The air is cold...'}
+              </p>
+            )}
           </div>
         </div>
       )}
