@@ -6,8 +6,9 @@ import Ghost3D from './Ghost3D';
 import PlayerController from './PlayerController';
 import NextRoomPortal from './NextRoomPortal';
 import GhostAtmosphere from './GhostAtmosphere';
+import RandomHorrorEvents from './RandomHorrorEvents';
 
-export default function GameCanvas() { // v2
+export default function GameCanvas() { // v3
   const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostSpawnType, ghostApproachProgress, roomDarkness, selectDoor, phase, portal } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
@@ -60,6 +61,9 @@ export default function GameCanvas() { // v2
           roomDarkness={roomDarkness}
           approachProgress={ghostApproachProgress}
         />
+
+        {/* Random horror events - shadows, sounds, flickers */}
+        <RandomHorrorEvents />
 
         {/* Room darkness overlay light - dims during ghost encounters */}
         {roomDarkness > 0 && (

@@ -3,6 +3,7 @@ import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
 import { audioManager } from '@/game/audio';
 import ghostNunImg from '@/assets/ghost-nun.jpg';
+import RandomHorrorUI from './RandomHorrorUI';
 
 function Crosshair() {
   return (
@@ -751,6 +752,7 @@ export default function GameUI() {
       <FlickerOverlay />
       <GhostApproachOverlay />
       <GhostAttackOverlay />
+      <RandomHorrorUI />
       <HUD />
       <MusicToggle />
       <PauseMenu />

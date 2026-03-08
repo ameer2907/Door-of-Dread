@@ -415,13 +415,79 @@ export default function RoomDecorations({ roomTheme, roomIndex }: Props) {
     case 'hallway':
       return (
         <group>
+          {/* Coat rack */}
           <mesh position={[-4, 1.5, -3]} castShadow>
             <cylinderGeometry args={[0.03, 0.05, 3]} />
             <meshStandardMaterial color="#3a2510" />
           </mesh>
-          <mesh position={[4, 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
+          {/* Coat hooks */}
+          {[-0.2, 0.2].map((x, i) => (
+            <mesh key={`hook-${i}`} position={[-4 + x, 2.6, -3]} rotation={[0, 0, i === 0 ? 0.4 : -0.4]}>
+              <cylinderGeometry args={[0.01, 0.01, 0.15]} />
+              <meshStandardMaterial color="#555533" metalness={0.6} />
+            </mesh>
+          ))}
+          {/* Framed painting */}
+          <mesh position={[4.9, 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
             <boxGeometry args={[1.2, 0.8, 0.05]} />
             <meshStandardMaterial color="#2a1a0a" />
+          </mesh>
+          {/* Painting canvas */}
+          <mesh position={[4.88, 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
+            <planeGeometry args={[1.0, 0.6]} />
+            <meshStandardMaterial color="#1a1510" />
+          </mesh>
+          {/* Console table */}
+          <mesh position={[3.5, 0.4, 4]} castShadow>
+            <boxGeometry args={[1.2, 0.04, 0.5]} />
+            <meshStandardMaterial color="#3a2a15" roughness={0.9} />
+          </mesh>
+          {[[-0.5, 0], [0.5, 0]].map(([x, z], i) => (
+            <mesh key={`leg-${i}`} position={[3.5 + x, 0.2, 4 + z]}>
+              <boxGeometry args={[0.05, 0.4, 0.05]} />
+              <meshStandardMaterial color="#2a1a0a" />
+            </mesh>
+          ))}
+          {/* Candle on table */}
+          <mesh position={[3.5, 0.5, 4]}>
+            <cylinderGeometry args={[0.025, 0.025, 0.15]} />
+            <meshStandardMaterial color="#ccaa55" emissive="#ffaa33" emissiveIntensity={0.2} />
+          </mesh>
+          <pointLight position={[3.5, 0.65, 4]} color="#ffaa33" intensity={0.15} distance={2.5} />
+          {/* Umbrella stand */}
+          <mesh position={[-3.8, 0.3, 4]} castShadow>
+            <cylinderGeometry args={[0.15, 0.12, 0.6, 8]} />
+            <meshStandardMaterial color="#2a2a1a" />
+          </mesh>
+          {/* Old rug on floor */}
+          <mesh position={[0, 0.01, 1]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[3, 4]} />
+            <meshStandardMaterial color="#3a2a1a" transparent opacity={0.6} />
+          </mesh>
+          {/* Scratch marks on floor */}
+          {[[1.5, 0.01, 2], [-1, 0.01, -1], [0.5, 0.01, 3]].map((p, i) => (
+            <mesh key={`scratch-${i}`} position={p as [number, number, number]} rotation={[-Math.PI / 2, 0, Math.random() * Math.PI]}>
+              <planeGeometry args={[0.04, 0.6 + Math.random() * 0.4]} />
+              <meshStandardMaterial color="#1a1008" transparent opacity={0.5} />
+            </mesh>
+          ))}
+          {/* Cobwebs in corners */}
+          <mesh position={[-4.8, 3.8, -4.8]}>
+            <planeGeometry args={[1.2, 1.2]} />
+            <meshStandardMaterial color="#888877" transparent opacity={0.08} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh position={[4.8, 3.8, -4.8]} rotation={[0, -Math.PI / 2, 0]}>
+            <planeGeometry args={[1.2, 1.2]} />
+            <meshStandardMaterial color="#888877" transparent opacity={0.08} side={THREE.DoubleSide} />
+          </mesh>
+          {/* Wall crack */}
+          <mesh position={[-2, 2.5, -4.94]}>
+            <boxGeometry args={[0.02, 1.5, 0.01]} />
+            <meshStandardMaterial color="#1a1008" transparent opacity={0.4} />
+          </mesh>
+          <mesh position={[-2.1, 2.0, -4.94]} rotation={[0, 0, 0.3]}>
+            <boxGeometry args={[0.015, 0.8, 0.01]} />
+            <meshStandardMaterial color="#1a1008" transparent opacity={0.3} />
           </mesh>
         </group>
       );
