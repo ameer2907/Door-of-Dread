@@ -1,5 +1,6 @@
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
-export type GhostState = 'hidden' | 'watching' | 'close' | 'attack';
+export type GhostState = 'hidden' | 'watching' | 'approaching' | 'close' | 'attack';
+export type GhostSpawnType = 'doorway' | 'behind' | 'corridor' | 'shadows';
 export type GhostType = 'stalker' | 'shadow' | 'jumpscare' | 'corridor' | 'nun';
 export type PortalPhase = 'none' | 'doorOpening' | 'walkThrough' | 'arriving';
 
