@@ -162,6 +162,22 @@
   100% { transform: translateX(10%); }
 }
 
+@keyframes blood-drip {
+  0% { height: 0; opacity: 0; }
+  20% { opacity: 0.7; }
+  100% { height: 40px; opacity: 0; }
+}
+
+@keyframes screen-static {
+  0% { background-position: 0 0; }
+  100% { background-position: 100% 100%; }
+}
+
+@keyframes fog-drift {
+  0% { transform: translateX(-20%); }
+  100% { transform: translateX(10%); }
+}
+
 @keyframes screen-static {
   0% { background-position: 0 0; }
   100% { background-position: 100% 100%; }

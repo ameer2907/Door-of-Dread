@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
-import { GamePhase, GhostState, GhostType, GameSettings, GameState } from './types';
+import { GamePhase, GhostState, GhostType, GameSettings, GameState, PortalTransition } from './types';
 import { ROOM_CONFIGS } from './rooms';
 import { audioManager } from './audio';
 
 const randomDoor = () => Math.floor(Math.random() * 3);
-const GHOST_TYPES: GhostType[] = ['stalker', 'shadow', 'jumpscare', 'corridor', 'nun'];
+
+const defaultPortal: PortalTransition = {
+  phase: 'none',
+  doorIndex: 0,
+  nextRoomIndex: 1,
+  progress: 0,
+  fogDensity: 0,
+};
 
 const initialState: GameState = {
   phase: 'menu',
@@ -24,6 +31,7 @@ const initialState: GameState = {
   screenShake: 0,
   filmGrain: true,
   chromaticAberration: 0,
+  portal: { ...defaultPortal },
 };
 
 interface GameActions {
@@ -49,7 +57,7 @@ export function useGame() {
 }
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const stateRef = useRef<GameState>({ ...initialState, correctDoorIndex: randomDoor() });
+  const stateRef = useRef<GameState>({ ...initialState, correctDoorIndex: randomDoor(), portal: { ...defaultPortal } });
   const [, setTick] = useState(0);
   const update = useCallback(() => setTick(n => n + 1), []);
 
@@ -78,6 +86,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       screenShake: 0,
       filmGrain: true,
       chromaticAberration: 0,
+      portal: { ...defaultPortal },
     });
     update();
   }, [update, s.settings.volume]);
@@ -85,6 +94,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const selectDoor = useCallback((index: number) => {
     const st = stateRef.current;
     if (st.isTransitioning || st.openingDoor !== null || st.phase !== 'playing') return;
+    if (st.portal.phase !== 'none') return;
 
     st.openingDoor = index;
     audioManager.playHorrorDoorOpen();
@@ -93,37 +103,78 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => {
       const st2 = stateRef.current;
       if (index === st2.correctDoorIndex) {
-        audioManager.playCorrectDoor();
-        st2.isTransitioning = true;
-        update();
-
-        setTimeout(() => {
-          const st3 = stateRef.current;
-          const totalRooms = ROOM_CONFIGS.length;
-          if (st3.currentRoom >= totalRooms - 1) {
-            st3.phase = 'win';
+        // === PORTAL TRANSITION: Correct door ===
+        const totalRooms = ROOM_CONFIGS.length;
+        if (st2.currentRoom >= totalRooms - 1) {
+          // Win condition
+          st2.isTransitioning = true;
+          audioManager.playCorrectDoor();
+          update();
+          setTimeout(() => {
+            stateRef.current.phase = 'win';
+            stateRef.current.openingDoor = null;
+            stateRef.current.isTransitioning = false;
+            stateRef.current.portal = { ...defaultPortal };
             audioManager.stopAll();
             audioManager.playChurchBell();
-          } else {
-            st3.currentRoom++;
-            st3.wrongCount = 0;
-            st3.correctDoorIndex = randomDoor();
-            st3.ghostState = 'hidden';
-            st3.ghostVisible = false;
-            st3.fear = Math.max(0, st3.fear - 10);
-            st3.screenShake = 0;
-            st3.chromaticAberration = 0;
-            // Start new room ambience
-            audioManager.startRoomAmbience(ROOM_CONFIGS[st3.currentRoom].ambientSoundType);
-            if (ROOM_CONFIGS[st3.currentRoom].hasWhispers) {
-              audioManager.playWhisper();
-            }
-          }
+            update();
+          }, 1500);
+          return;
+        }
+
+        // Start portal transition - door is already opening
+        audioManager.playCorrectDoor();
+        audioManager.playTransitionWind();
+        st2.isTransitioning = true;
+        st2.portal = {
+          phase: 'doorOpening',
+          doorIndex: index,
+          nextRoomIndex: st2.currentRoom + 1,
+          progress: 0,
+          fogDensity: 0,
+        };
+        update();
+
+        // Phase 2: Walk through (after door is open enough ~1.2s)
+        setTimeout(() => {
+          const st3 = stateRef.current;
+          st3.portal.phase = 'walkThrough';
+          st3.portal.progress = 0;
+          st3.screenShake = 0.05;
+          audioManager.playWhisper();
+          update();
+        }, 1200);
+
+        // Phase 3: Arriving in new room (camera has crossed threshold ~3.5s total)
+        setTimeout(() => {
+          const st3 = stateRef.current;
+          st3.portal.phase = 'arriving';
+          st3.portal.fogDensity = 1;
+          update();
+        }, 3200);
+
+        // Phase 4: Complete - swap rooms
+        setTimeout(() => {
+          const st3 = stateRef.current;
+          st3.currentRoom = st3.portal.nextRoomIndex;
+          st3.wrongCount = 0;
+          st3.correctDoorIndex = randomDoor();
+          st3.ghostState = 'hidden';
+          st3.ghostVisible = false;
+          st3.fear = Math.max(0, st3.fear - 10);
+          st3.screenShake = 0;
+          st3.chromaticAberration = 0;
           st3.openingDoor = null;
           st3.isTransitioning = false;
+          st3.portal = { ...defaultPortal };
+          audioManager.startRoomAmbience(ROOM_CONFIGS[st3.currentRoom].ambientSoundType);
+          if (ROOM_CONFIGS[st3.currentRoom].hasWhispers) {
+            audioManager.playWhisper();
+          }
           update();
-        }, 1500);
+        }, 4200);
       } else {
+        // === WRONG DOOR (unchanged logic) ===
         audioManager.playWrongDoor();
         const roomCfg = ROOM_CONFIGS[st2.currentRoom];
         st2.wrongCount++;
@@ -134,7 +185,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         audioManager.playFlicker();
         update();
 
-        // Pick ghost type based on room progression
         const ghostTypes: GhostType[] = ['shadow', 'corridor', 'stalker', 'jumpscare', 'nun'];
         const selectedGhost = st2.wrongCount >= 2
           ? 'nun'
@@ -158,8 +208,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         } else if (roomCfg.ghostLevel > 0) {
           st2.ghostVisible = true;
           st2.ghostState = roomCfg.ghostLevel >= 2 ? 'close' : 'watching';
-
-          // Different sound per ghost type
           if (selectedGhost === 'jumpscare') {
             audioManager.playJumpscareStinger();
             st2.screenShake = 0.6;
@@ -167,9 +215,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             audioManager.playGhostSting();
           }
           update();
-
           if (st2.fear > 50) audioManager.startHeartbeat(800 - st2.fear * 4);
-
           setTimeout(() => {
             const st3 = stateRef.current;
             st3.ghostVisible = false;
@@ -239,7 +285,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const increaseFear = useCallback((amount: number) => {
     const st = stateRef.current;
     st.fear = Math.min(100, st.fear + amount);
-    // Progressive chromatic aberration
     st.chromaticAberration = Math.min(1, st.fear / 100);
     if (st.fear >= 100 && st.phase === 'playing') {
       st.ghostState = 'attack';

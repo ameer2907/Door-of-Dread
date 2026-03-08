@@ -1,6 +1,7 @@
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
 export type GhostState = 'hidden' | 'watching' | 'close' | 'attack';
 export type GhostType = 'stalker' | 'shadow' | 'jumpscare' | 'corridor' | 'nun';
+export type PortalPhase = 'none' | 'doorOpening' | 'walkThrough' | 'arriving';
 
 export interface RoomConfig {
   name: string;
@@ -18,8 +19,7 @@ export interface RoomConfig {
   fearMultiplier: number;
   hasWhispers: boolean;
   lightFailure: boolean;
-  // New fields
-  dustDensity: number;       // 0-1 density of floating dust particles
+  dustDensity: number;
   dustColor: string;
   ambientSoundType: 'wind' | 'drip' | 'whisper' | 'scream' | 'child' | 'ritual' | 'silence';
   roomTheme: 'corridor' | 'hospital' | 'library' | 'ritual' | 'mirror' | 'basement' | 'child' | 'chapel' | 'hallway' | 'living' | 'stairs' | 'bedroom' | 'exit';
@@ -29,6 +29,14 @@ export interface GameSettings {
   volume: number;
   sensitivity: number;
   graphics: 'low' | 'medium' | 'high';
+}
+
+export interface PortalTransition {
+  phase: PortalPhase;
+  doorIndex: number;         // which door was selected
+  nextRoomIndex: number;     // next room to show behind door
+  progress: number;          // 0-1 animation progress
+  fogDensity: number;        // 0-1 transition fog
 }
 
 export interface GameState {
@@ -46,7 +54,8 @@ export interface GameState {
   ghostVisible: boolean;
   openingDoor: number | null;
   pointerLocked: boolean;
-  screenShake: number;       // 0-1 shake intensity
+  screenShake: number;
   filmGrain: boolean;
-  chromaticAberration: number; // 0-1
+  chromaticAberration: number;
+  portal: PortalTransition;
 }
