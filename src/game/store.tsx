@@ -51,7 +51,7 @@ interface GameActions {
   getState: () => GameState;
 }
 
-const GameContext = createContext<(GameState & GameActions) | null>(null);
+const GameContext = createContext<(GameState & GameActions) | null>(null); // v2
 
 export function useGame() {
   const ctx = useContext(GameContext);
