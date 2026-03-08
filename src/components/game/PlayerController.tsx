@@ -4,6 +4,7 @@ import { PointerLockControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useGame } from '@/game/store';
 import { ROOM_CONFIGS } from '@/game/rooms';
+import { audioManager } from '@/game/audio';
 import { joystickState } from './JoystickControl';
 
 export default function PlayerController() {
@@ -20,14 +21,15 @@ export default function PlayerController() {
   const shakeOffset = useRef({ x: 0, y: 0 });
   const introTime = useRef(0);
   const introStarted = useRef(false);
+  const footstepTimer = useRef(0);
+  const breatheTime = useRef(0);
 
   const currentRoom = getState().currentRoom;
   useEffect(() => {
     const gs = getState();
     if (gs.phase === 'intro') {
-      // Start lying down on the floor
       camera.position.set(0, 0.2, 3);
-      camera.rotation.set(-Math.PI / 2, 0, 0); // Looking up at ceiling
+      camera.rotation.set(-Math.PI / 2, 0, 0);
       introTime.current = 0;
       introStarted.current = true;
     } else {
@@ -60,9 +62,7 @@ export default function PlayerController() {
     const onChange = () => {
       const locked = !!document.pointerLockElement;
       setPointerLocked(locked);
-      if (!locked && getState().phase === 'playing') {
-        pause();
-      }
+      if (!locked && getState().phase === 'playing') pause();
     };
     document.addEventListener('pointerlockchange', onChange);
     return () => document.removeEventListener('pointerlockchange', onChange);
@@ -75,28 +75,18 @@ export default function PlayerController() {
     if (gs.phase === 'intro' && introStarted.current) {
       introTime.current += delta;
       const t = introTime.current;
-      const duration = 4.0; // total intro duration in seconds
+      const duration = 4.0;
       
       if (t < duration) {
         const progress = Math.min(t / duration, 1);
-        // Ease out cubic
         const ease = 1 - Math.pow(1 - progress, 3);
-        
-        // Rise from floor (0.2) to standing (1.7)
         camera.position.y = 0.2 + ease * 1.5;
-        
-        // Rotate from looking at ceiling (-PI/2) to looking forward (0)
         camera.rotation.x = -Math.PI / 2 + ease * Math.PI / 2;
-        
-        // Slight sway during waking up
         if (t > 0.5) {
           const sway = Math.sin(t * 2) * 0.02 * (1 - ease);
           camera.rotation.z = sway;
         }
-        
-        // Blurry vision clear-up is handled by the UI overlay
       } else {
-        // Intro done, switch to playing
         camera.position.set(0, 1.7, 3);
         camera.rotation.set(0, 0, 0);
         camera.lookAt(0, 1.7, -5);
@@ -108,50 +98,76 @@ export default function PlayerController() {
     
     if (gs.phase !== 'playing') return;
 
-    // Movement (WASD + Arrow keys + Joystick)
-    const speed = (keys.current['ShiftLeft'] || keys.current['ShiftRight']) ? 6 : 3;
+    // Movement
+    const sprinting = keys.current['ShiftLeft'] || keys.current['ShiftRight'];
+    const speed = sprinting ? 6 : 3;
     const dir = moveDir.current.set(0, 0, 0);
     if (keys.current['KeyW'] || keys.current['ArrowUp']) dir.z -= 1;
     if (keys.current['KeyS'] || keys.current['ArrowDown']) dir.z += 1;
     if (keys.current['KeyA'] || keys.current['ArrowLeft']) dir.x -= 1;
     if (keys.current['KeyD'] || keys.current['ArrowRight']) dir.x += 1;
 
-    // Joystick input
     if (joystickState.active) {
       dir.x += joystickState.x;
       dir.z += joystickState.y;
     }
 
-    if (dir.length() > 0) {
+    const isMoving = dir.length() > 0.1;
+
+    if (isMoving) {
       dir.normalize();
       dir.applyQuaternion(camera.quaternion);
       dir.y = 0;
       dir.normalize();
       camera.position.addScaledVector(dir, speed * delta);
+
+      // Footstep sounds
+      footstepTimer.current += delta * (sprinting ? 2 : 1);
+      if (footstepTimer.current > 0.45) {
+        footstepTimer.current = 0;
+        audioManager.playFootstep();
+      }
     }
 
     // Clamp to room
     camera.position.x = THREE.MathUtils.clamp(camera.position.x, -4.5, 4.5);
     camera.position.z = THREE.MathUtils.clamp(camera.position.z, -4.2, 4.5);
 
-    // Breathing + camera shake during ghost attack
-    const breathe = Math.sin(state.clock.elapsedTime * 1.2) * 0.008;
+    // Breathing effect - more intense at high fear
+    breatheTime.current += delta;
+    const fearFactor = gs.fear / 100;
+    const breatheSpeed = 1.2 + fearFactor * 1.5;
+    const breatheAmp = 0.008 + fearFactor * 0.015;
+    const breathe = Math.sin(breatheTime.current * breatheSpeed) * breatheAmp;
     
+    // Head bob while walking
+    const headBob = isMoving ? Math.sin(state.clock.elapsedTime * (sprinting ? 12 : 8)) * 0.02 : 0;
+    
+    // Subtle motion instability at high fear
+    const instabilityX = fearFactor > 0.5 
+      ? Math.sin(state.clock.elapsedTime * 3.7) * 0.003 * fearFactor 
+      : 0;
+    const instabilityZ = fearFactor > 0.5 
+      ? Math.cos(state.clock.elapsedTime * 2.3) * 0.002 * fearFactor 
+      : 0;
+
     if (gs.ghostState === 'attack') {
-      // Intense camera shake
-      const shakeIntensity = 0.06;
+      const shakeIntensity = 0.08;
       shakeOffset.current.x = (Math.random() - 0.5) * shakeIntensity;
       shakeOffset.current.y = (Math.random() - 0.5) * shakeIntensity;
       camera.position.y = 1.7 + shakeOffset.current.y;
       camera.position.x += shakeOffset.current.x;
+      // Tilt camera during attack
+      camera.rotation.z = (Math.random() - 0.5) * 0.03;
     } else if (gs.ghostState === 'close') {
-      // Mild shake
-      const mild = 0.015;
+      const mild = 0.02;
       shakeOffset.current.x = (Math.random() - 0.5) * mild;
       shakeOffset.current.y = (Math.random() - 0.5) * mild;
-      camera.position.y = 1.7 + breathe + shakeOffset.current.y;
+      camera.position.y = 1.7 + breathe + headBob + shakeOffset.current.y;
     } else {
-      camera.position.y = 1.7 + breathe;
+      camera.position.y = 1.7 + breathe + headBob;
+      camera.position.x += instabilityX;
+      camera.position.z += instabilityZ;
     }
 
     // Raycast for door targeting

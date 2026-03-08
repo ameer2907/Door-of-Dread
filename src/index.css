@@ -146,8 +146,8 @@
 }
 
 @keyframes menu-bg-pulse {
-  0%, 100% { filter: brightness(0.3) saturate(0.5); }
-  50% { filter: brightness(0.2) saturate(0.3); }
+  0%, 100% { filter: brightness(0.2) saturate(0.3) contrast(1.2); }
+  50% { filter: brightness(0.15) saturate(0.2) contrast(1.3); }
 }
 
 @keyframes float-particle {
@@ -155,4 +155,14 @@
   10% { opacity: 0.6; }
   90% { opacity: 0.6; }
   100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+}
+
+@keyframes fog-drift {
+  0% { transform: translateX(-20%); }
+  100% { transform: translateX(10%); }
+}
+
+@keyframes screen-static {
+  0% { background-position: 0 0; }
+  100% { background-position: 100% 100%; }
 }

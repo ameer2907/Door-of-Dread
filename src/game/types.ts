@@ -1,5 +1,6 @@
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
 export type GhostState = 'hidden' | 'watching' | 'close' | 'attack';
+export type GhostType = 'stalker' | 'shadow' | 'jumpscare' | 'corridor' | 'nun';
 
 export interface RoomConfig {
   name: string;
@@ -17,6 +18,11 @@ export interface RoomConfig {
   fearMultiplier: number;
   hasWhispers: boolean;
   lightFailure: boolean;
+  // New fields
+  dustDensity: number;       // 0-1 density of floating dust particles
+  dustColor: string;
+  ambientSoundType: 'wind' | 'drip' | 'whisper' | 'scream' | 'child' | 'ritual' | 'silence';
+  roomTheme: 'corridor' | 'hospital' | 'library' | 'ritual' | 'mirror' | 'basement' | 'child' | 'chapel' | 'hallway' | 'living' | 'stairs' | 'bedroom' | 'exit';
 }
 
 export interface GameSettings {
@@ -32,6 +38,7 @@ export interface GameState {
   wrongCount: number;
   correctDoorIndex: number;
   ghostState: GhostState;
+  ghostType: GhostType;
   isTransitioning: boolean;
   settings: GameSettings;
   targetedDoor: number | null;
@@ -39,4 +46,7 @@ export interface GameState {
   ghostVisible: boolean;
   openingDoor: number | null;
   pointerLocked: boolean;
+  screenShake: number;       // 0-1 shake intensity
+  filmGrain: boolean;
+  chromaticAberration: number; // 0-1
 }

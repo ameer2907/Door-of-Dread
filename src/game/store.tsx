@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
-import { GamePhase, GhostState, GameSettings, GameState } from './types';
+import { GamePhase, GhostState, GhostType, GameSettings, GameState } from './types';
 import { ROOM_CONFIGS } from './rooms';
 import { audioManager } from './audio';
 
 const randomDoor = () => Math.floor(Math.random() * 3);
+const GHOST_TYPES: GhostType[] = ['stalker', 'shadow', 'jumpscare', 'corridor', 'nun'];
 
 const initialState: GameState = {
   phase: 'menu',
@@ -12,6 +13,7 @@ const initialState: GameState = {
   wrongCount: 0,
   correctDoorIndex: randomDoor(),
   ghostState: 'hidden',
+  ghostType: 'nun',
   isTransitioning: false,
   settings: { volume: 50, sensitivity: 5, graphics: 'medium' },
   targetedDoor: null,
@@ -19,6 +21,9 @@ const initialState: GameState = {
   ghostVisible: false,
   openingDoor: null,
   pointerLocked: false,
+  screenShake: 0,
+  filmGrain: true,
+  chromaticAberration: 0,
 };
 
 interface GameActions {
@@ -56,6 +61,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     audioManager.setVolume(s.settings.volume);
     audioManager.startAmbient();
     audioManager.startMusic();
+    audioManager.startRoomAmbience(ROOM_CONFIGS[0].ambientSoundType);
     Object.assign(stateRef.current, {
       phase: 'intro' as GamePhase,
       currentRoom: 0,
@@ -63,11 +69,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       wrongCount: 0,
       correctDoorIndex: randomDoor(),
       ghostState: 'hidden' as GhostState,
+      ghostType: 'nun' as GhostType,
       isTransitioning: false,
       targetedDoor: null,
       flickering: false,
       ghostVisible: false,
       openingDoor: null,
+      screenShake: 0,
+      filmGrain: true,
+      chromaticAberration: 0,
     });
     update();
   }, [update, s.settings.volume]);
@@ -89,7 +99,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
         setTimeout(() => {
           const st3 = stateRef.current;
-          if (st3.currentRoom >= 6) {
+          const totalRooms = ROOM_CONFIGS.length;
+          if (st3.currentRoom >= totalRooms - 1) {
             st3.phase = 'win';
             audioManager.stopAll();
             audioManager.playChurchBell();
@@ -100,6 +111,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             st3.ghostState = 'hidden';
             st3.ghostVisible = false;
             st3.fear = Math.max(0, st3.fear - 10);
+            st3.screenShake = 0;
+            st3.chromaticAberration = 0;
+            // Start new room ambience
+            audioManager.startRoomAmbience(ROOM_CONFIGS[st3.currentRoom].ambientSoundType);
             if (ROOM_CONFIGS[st3.currentRoom].hasWhispers) {
               audioManager.playWhisper();
             }
@@ -114,14 +129,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         st2.wrongCount++;
         st2.fear = Math.min(100, st2.fear + 15 * roomCfg.fearMultiplier);
         st2.flickering = true;
+        st2.screenShake = 0.3;
+        st2.chromaticAberration = 0.4;
         audioManager.playFlicker();
         update();
 
+        // Pick ghost type based on room progression
+        const ghostTypes: GhostType[] = ['shadow', 'corridor', 'stalker', 'jumpscare', 'nun'];
+        const selectedGhost = st2.wrongCount >= 2
+          ? 'nun'
+          : ghostTypes[Math.min(st2.currentRoom, ghostTypes.length - 1)];
+        st2.ghostType = selectedGhost;
+
         if (st2.wrongCount >= 2 || st2.fear >= 100) {
           st2.ghostState = 'attack';
+          st2.ghostType = 'nun';
           st2.ghostVisible = true;
+          st2.screenShake = 1;
+          st2.chromaticAberration = 1;
           audioManager.playGhostScream();
-          audioManager.startHeartbeat(400);
+          audioManager.startHeartbeat(300);
           update();
           setTimeout(() => {
             stateRef.current.phase = 'gameover';
@@ -131,7 +158,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         } else if (roomCfg.ghostLevel > 0) {
           st2.ghostVisible = true;
           st2.ghostState = roomCfg.ghostLevel >= 2 ? 'close' : 'watching';
-          audioManager.playGhostSting();
+
+          // Different sound per ghost type
+          if (selectedGhost === 'jumpscare') {
+            audioManager.playJumpscareStinger();
+            st2.screenShake = 0.6;
+          } else {
+            audioManager.playGhostSting();
+          }
           update();
 
           if (st2.fear > 50) audioManager.startHeartbeat(800 - st2.fear * 4);
@@ -143,15 +177,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             st3.ghostState = 'hidden';
             st3.correctDoorIndex = randomDoor();
             st3.openingDoor = null;
+            st3.screenShake = 0;
+            st3.chromaticAberration = Math.max(0, st3.chromaticAberration - 0.3);
             audioManager.stopHeartbeat();
             update();
-          }, 2000);
+          }, 2500);
         } else {
           setTimeout(() => {
             const st3 = stateRef.current;
             st3.flickering = false;
             st3.correctDoorIndex = randomDoor();
             st3.openingDoor = null;
+            st3.screenShake = 0;
+            st3.chromaticAberration = 0;
             update();
           }, 1500);
         }
@@ -201,9 +239,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const increaseFear = useCallback((amount: number) => {
     const st = stateRef.current;
     st.fear = Math.min(100, st.fear + amount);
+    // Progressive chromatic aberration
+    st.chromaticAberration = Math.min(1, st.fear / 100);
     if (st.fear >= 100 && st.phase === 'playing') {
       st.ghostState = 'attack';
+      st.ghostType = 'nun';
       st.ghostVisible = true;
+      st.screenShake = 1;
       audioManager.playGhostScream();
       update();
       setTimeout(() => {

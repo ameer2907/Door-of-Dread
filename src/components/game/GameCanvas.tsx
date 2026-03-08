@@ -6,7 +6,7 @@ import Ghost3D from './Ghost3D';
 import PlayerController from './PlayerController';
 
 export default function GameCanvas() {
-  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, selectDoor, phase } = useGame();
+  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostType, selectDoor, phase } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
   if (phase === 'menu') return null;
