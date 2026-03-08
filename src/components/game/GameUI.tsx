@@ -67,6 +67,49 @@ function FlickerOverlay() {
   );
 }
 
+function GhostApproachOverlay() {
+  const { ghostState, ghostVisible, roomDarkness } = useGame();
+  
+  if (!ghostVisible) return null;
+  if (ghostState !== 'approaching' && ghostState !== 'close') return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[33]">
+      {/* Building darkness */}
+      <div
+        className="absolute inset-0 transition-opacity duration-700"
+        style={{
+          backgroundColor: `rgba(0, 0, 0, ${roomDarkness * 0.4})`,
+        }}
+      />
+      {/* Edge darkness - tunnel vision */}
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: `inset 0 0 ${100 + roomDarkness * 150}px rgba(0, 0, 0, ${0.4 + roomDarkness * 0.5})`,
+        }}
+      />
+      {/* Subtle red pulse when close */}
+      {ghostState === 'close' && (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle, transparent 30%, rgba(80, 0, 0, 0.3) 100%)',
+            animation: 'blood-pulse 0.8s infinite alternate',
+          }}
+        />
+      )}
+      {/* Breathing vignette effect */}
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: `inset 0 0 ${80 + Math.sin(Date.now() * 0.003) * 30}px rgba(20, 0, 40, ${0.2 + roomDarkness * 0.3})`,
+        }}
+      />
+    </div>
+  );
+}
+
 function GhostAttackOverlay() {
   const { ghostState, ghostVisible } = useGame();
   const [scarePhase, setScarePhase] = useState(0);
@@ -74,94 +117,84 @@ function GhostAttackOverlay() {
   useEffect(() => {
     if (ghostState === 'attack' && ghostVisible) {
       setScarePhase(1);
-      const t1 = setTimeout(() => setScarePhase(2), 400);
-      const t2 = setTimeout(() => setScarePhase(3), 1200);
+      const t1 = setTimeout(() => setScarePhase(2), 300);
+      const t2 = setTimeout(() => setScarePhase(3), 800);
       return () => { clearTimeout(t1); clearTimeout(t2); };
     } else {
       setScarePhase(0);
     }
   }, [ghostState, ghostVisible]);
 
-  if (!ghostVisible || (ghostState !== 'attack' && ghostState !== 'close')) return null;
+  if (!ghostVisible || ghostState !== 'attack') return null;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[35]">
-      {/* Screen darkening */}
+      {/* Sudden screen blackout flash */}
       <div
-        className="absolute inset-0 transition-opacity duration-300"
+        className="absolute inset-0"
         style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          opacity: ghostState === 'attack' ? 1 : 0.3,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          opacity: scarePhase >= 1 ? 1 : 0,
+          transition: 'opacity 0.1s',
         }}
       />
 
-      {ghostState === 'attack' && (
-        <>
-          {/* Ghost nun image - scales up rapidly toward player */}
-          <div
-            className="absolute inset-0 flex items-center justify-center overflow-hidden"
-            style={{
-              animation: scarePhase >= 1 ? 'ghost-rush 2.5s ease-in forwards' : 'none',
-              opacity: scarePhase >= 1 ? 1 : 0,
-            }}
-          >
-            <img
-              src={ghostNunImg}
-              alt=""
-              className="min-w-full min-h-full object-cover"
-              style={{
-                filter: `brightness(${scarePhase >= 2 ? 1.4 : 0.7}) contrast(1.5) saturate(0.2)`,
-              }}
-            />
-          </div>
-
-          {/* Blood red flashes */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'radial-gradient(circle, transparent 10%, rgba(120, 0, 0, 0.9) 100%)',
-              animation: 'blood-pulse 0.12s infinite alternate',
-              opacity: scarePhase >= 2 ? 0.8 : 0,
-            }}
-          />
-
-          {/* Static glitch lines */}
-          <div
-            className="absolute inset-0 overflow-hidden"
-            style={{ opacity: scarePhase >= 1 ? 0.5 : 0, mixBlendMode: 'overlay' }}
-          >
-            {Array.from({ length: 25 }).map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-full"
-                style={{
-                  height: `${Math.random() * 4 + 1}px`,
-                  top: `${Math.random() * 100}%`,
-                  backgroundColor: `rgba(255,255,255,${0.1 + Math.random() * 0.3})`,
-                  animation: `glitch-line ${0.04 + Math.random() * 0.08}s infinite`,
-                  animationDelay: `${Math.random() * 0.3}s`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Death vignette */}
-          <div
-            className="absolute inset-0"
-            style={{
-              boxShadow: 'inset 0 0 200px rgba(100, 0, 0, 0.9), inset 0 0 80px rgba(0, 0, 0, 0.95)',
-              animation: 'pulse 0.2s infinite alternate',
-            }}
-          />
-        </>
-      )}
-
-      {ghostState === 'close' && (
-        <div
-          className="absolute inset-0"
-          style={{ boxShadow: 'inset 0 0 100px rgba(0, 0, 0, 0.6)' }}
+      {/* Ghost nun image - scales up rapidly */}
+      <div
+        className="absolute inset-0 flex items-center justify-center overflow-hidden"
+        style={{
+          animation: scarePhase >= 1 ? 'ghost-rush 2s ease-in forwards' : 'none',
+          opacity: scarePhase >= 1 ? 1 : 0,
+        }}
+      >
+        <img
+          src={ghostNunImg}
+          alt=""
+          className="min-w-full min-h-full object-cover"
+          style={{
+            filter: `brightness(${scarePhase >= 2 ? 1.6 : 0.5}) contrast(1.8) saturate(0.1)`,
+          }}
         />
-      )}
+      </div>
+
+      {/* Blood red flashes - more intense */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(circle, transparent 5%, rgba(150, 0, 0, 0.95) 100%)',
+          animation: 'blood-pulse 0.08s infinite alternate',
+          opacity: scarePhase >= 2 ? 0.9 : 0,
+        }}
+      />
+
+      {/* Heavy static glitch */}
+      <div
+        className="absolute inset-0 overflow-hidden"
+        style={{ opacity: scarePhase >= 1 ? 0.6 : 0, mixBlendMode: 'overlay' }}
+      >
+        {Array.from({ length: 30 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-full"
+            style={{
+              height: `${Math.random() * 6 + 1}px`,
+              top: `${Math.random() * 100}%`,
+              backgroundColor: `rgba(255,255,255,${0.15 + Math.random() * 0.4})`,
+              animation: `glitch-line ${0.03 + Math.random() * 0.06}s infinite`,
+              animationDelay: `${Math.random() * 0.2}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Death vignette */}
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 0 200px rgba(100, 0, 0, 0.9), inset 0 0 80px rgba(0, 0, 0, 0.95)',
+          animation: 'pulse 0.15s infinite alternate',
+        }}
+      />
     </div>
   );
 }
@@ -631,6 +664,7 @@ export default function GameUI() {
       <InteractPrompt />
       <FearOverlay />
       <FlickerOverlay />
+      <GhostApproachOverlay />
       <GhostAttackOverlay />
       <HUD />
       <MusicToggle />

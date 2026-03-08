@@ -1,5 +1,6 @@
 export type GamePhase = 'menu' | 'intro' | 'playing' | 'paused' | 'gameover' | 'win' | 'settings';
-export type GhostState = 'hidden' | 'watching' | 'close' | 'attack';
+export type GhostState = 'hidden' | 'watching' | 'approaching' | 'close' | 'attack';
+export type GhostSpawnType = 'doorway' | 'behind' | 'corridor' | 'shadows';
 export type GhostType = 'stalker' | 'shadow' | 'jumpscare' | 'corridor' | 'nun';
 export type PortalPhase = 'none' | 'doorOpening' | 'walkThrough' | 'arriving';
 
@@ -58,4 +59,7 @@ export interface GameState {
   filmGrain: boolean;
   chromaticAberration: number;
   portal: PortalTransition;
+  ghostSpawnType: GhostSpawnType;
+  ghostApproachProgress: number; // 0-1 how close ghost is to player
+  roomDarkness: number; // 0-1 room darkening during encounters
 }

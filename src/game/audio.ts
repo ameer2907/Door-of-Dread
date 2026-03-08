@@ -676,6 +676,66 @@ class AudioManager {
     setTimeout(() => this.playNoise(0.3, 0.15), 50);
   }
 
+  // Sustained tension drone during ghost approach
+  playApproachDrone() {
+    if (!this.ctx || !this.masterGain) return;
+    // Low dissonant drone that builds
+    const osc1 = this.ctx.createOscillator();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(55, this.ctx.currentTime);
+    osc1.frequency.linearRampToValueAtTime(70, this.ctx.currentTime + 4);
+    const osc2 = this.ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(58, this.ctx.currentTime);
+    osc2.frequency.linearRampToValueAtTime(73, this.ctx.currentTime + 4);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.001, this.ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.15, this.ctx.currentTime + 2);
+    g.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + 4);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 5);
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.setValueAtTime(200, this.ctx.currentTime);
+    filt.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 4);
+    osc1.connect(filt);
+    osc2.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    osc1.start();
+    osc2.start();
+    osc1.stop(this.ctx.currentTime + 5);
+    osc2.stop(this.ctx.currentTime + 5);
+    // Whisper-like noise layer
+    this.playNoise(4, 0.04);
+  }
+
+  // Breathing sound - rhythmic filtered noise
+  playBreathingSound() {
+    if (!this.ctx || !this.masterGain) return;
+    const duration = 3;
+    const bufLen = this.ctx.sampleRate * duration;
+    const buf = this.ctx.createBuffer(1, bufLen, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const t = i / this.ctx.sampleRate;
+      const breathCycle = Math.sin(t * Math.PI * 2 * 0.8); // ~0.8 Hz breathing
+      const envelope = Math.max(0, breathCycle);
+      d[i] = (Math.random() * 2 - 1) * envelope;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filt = this.ctx.createBiquadFilter();
+    filt.type = 'bandpass';
+    filt.frequency.value = 400;
+    filt.Q.value = 2;
+    const g = this.ctx.createGain();
+    g.gain.value = 0.08;
+    src.connect(filt);
+    filt.connect(g);
+    g.connect(this.masterGain);
+    src.start();
+  }
+
   playWhisper() {
     this.playNoise(2, 0.03);
   }

@@ -16,17 +16,18 @@ interface Props {
   onSelectDoor: (index: number) => void;
 }
 
-function RoomLight({ config, flickering }: { config: RoomConfig; flickering: boolean }) {
+function RoomLight({ config, flickering, darkness }: { config: RoomConfig; flickering: boolean; darkness: number }) {
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(() => {
     if (!lightRef.current) return;
+    const darkenMult = 1 - darkness * 0.7;
     if (flickering) {
-      lightRef.current.intensity = Math.random() * config.pointLightIntensity;
+      lightRef.current.intensity = Math.random() * config.pointLightIntensity * darkenMult;
     } else if (config.lightFailure) {
-      lightRef.current.intensity = config.pointLightIntensity * (0.7 + Math.sin(Date.now() * 0.005) * 0.3);
+      lightRef.current.intensity = config.pointLightIntensity * (0.7 + Math.sin(Date.now() * 0.005) * 0.3) * darkenMult;
     } else {
-      lightRef.current.intensity = config.pointLightIntensity;
+      lightRef.current.intensity = config.pointLightIntensity * darkenMult;
     }
   });
 
@@ -58,13 +59,13 @@ function WallPlane({ position, rotation, size, color }: {
   );
 }
 
-export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoor, flickering, onSelectDoor }: Props) {
+export default function Room3D({ config, roomIndex, correctDoorIndex, openingDoor, flickering, onSelectDoor, darkness = 0 }: Props & { darkness?: number }) {
   const dustCount = Math.floor(config.dustDensity * 80);
 
   return (
     <group>
-      <ambientLight color={config.ambientColor} intensity={config.ambientIntensity} />
-      <RoomLight config={config} flickering={flickering} />
+      <ambientLight color={config.ambientColor} intensity={config.ambientIntensity * (1 - darkness * 0.6)} />
+      <RoomLight config={config} flickering={flickering} darkness={darkness} />
 
       {/* Fill lights */}
       <pointLight position={[-4, 1.5, 0]} color={config.pointLightColor} intensity={0.6} distance={12} />

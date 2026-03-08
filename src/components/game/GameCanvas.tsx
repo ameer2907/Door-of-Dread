@@ -7,7 +7,7 @@ import PlayerController from './PlayerController';
 import NextRoomPortal from './NextRoomPortal';
 
 export default function GameCanvas() {
-  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, selectDoor, phase, portal } = useGame();
+  const { currentRoom, correctDoorIndex, openingDoor, flickering, ghostVisible, ghostState, ghostSpawnType, ghostApproachProgress, roomDarkness, selectDoor, phase, portal } = useGame();
   const config = ROOM_CONFIGS[currentRoom];
 
   if (phase === 'menu') return null;
@@ -31,6 +31,7 @@ export default function GameCanvas() {
           openingDoor={openingDoor}
           flickering={flickering}
           onSelectDoor={selectDoor}
+          darkness={roomDarkness}
         />
 
         {/* Next room visible through the portal door */}
@@ -47,7 +48,14 @@ export default function GameCanvas() {
           state={ghostState}
           roomIndex={currentRoom}
           spawnDoorIndex={openingDoor}
+          spawnType={ghostSpawnType}
+          approachProgress={ghostApproachProgress}
         />
+
+        {/* Room darkness overlay light - dims during ghost encounters */}
+        {roomDarkness > 0 && (
+          <ambientLight color="#000000" intensity={-roomDarkness * 2} />
+        )}
 
         <PlayerController />
       </Canvas>
