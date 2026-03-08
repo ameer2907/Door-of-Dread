@@ -266,22 +266,31 @@ function GameOverScreen() {
   const { phase, restart, setPhase } = useGame();
   const [showUI, setShowUI] = useState(false);
   const [fadeGhost, setFadeGhost] = useState(true);
+  const [letterReveal, setLetterReveal] = useState(0);
 
   useEffect(() => {
     if (phase === 'gameover') {
       setFadeGhost(true);
       setShowUI(false);
+      setLetterReveal(0);
       const t1 = setTimeout(() => setFadeGhost(false), 2000);
       const t2 = setTimeout(() => setShowUI(true), 2800);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      // Letter-by-letter "DEAD" reveal
+      const t3 = setTimeout(() => setLetterReveal(1), 3000);
+      const t4 = setTimeout(() => setLetterReveal(2), 3300);
+      const t5 = setTimeout(() => setLetterReveal(3), 3600);
+      const t6 = setTimeout(() => setLetterReveal(4), 3900);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); clearTimeout(t6); };
     }
   }, [phase]);
 
   if (phase !== 'gameover') return null;
 
+  const deadLetters = ['D', 'E', 'A', 'D'];
+
   return (
     <div className="fixed inset-0 z-50 bg-black">
-      {/* Ghost face lingering after death */}
+      {/* Ghost face lingering */}
       <div
         className="absolute inset-0 flex items-center justify-center transition-opacity duration-1000"
         style={{ opacity: fadeGhost ? 1 : 0 }}
@@ -300,42 +309,110 @@ function GameOverScreen() {
         }} />
       </div>
 
-      {/* Death message */}
       {showUI && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center space-y-4 animate-fade-in relative z-10">
-            <p className="font-horror text-2xl tracking-[0.5em] text-red-400/80 uppercase"
-               style={{ animation: 'flicker-text 3s infinite' }}>
-              You didn't survive
+          <div className="text-center space-y-6 animate-fade-in relative z-10">
+            {/* "Your soul has been consumed" */}
+            <p className="font-horror text-lg md:text-2xl tracking-[0.6em] uppercase"
+               style={{
+                 color: 'hsl(0, 60%, 50%)',
+                 animation: 'flicker-text 3s infinite',
+                 textShadow: '0 0 20px rgba(200, 0, 0, 0.5)',
+               }}>
+              Your soul has been consumed
             </p>
-            <h2
-              className="font-horror text-8xl md:text-9xl tracking-widest"
-              style={{
-                color: 'hsl(0, 80%, 35%)',
-                textShadow: '0 0 40px rgba(200, 0, 0, 0.8), 0 0 80px rgba(150, 0, 0, 0.4), 0 4px 20px rgba(0,0,0,0.9)',
-                animation: 'death-text-pulse 2s ease-in-out infinite',
-              }}
-            >
-              DEAD
-            </h2>
-            <p className="text-muted-foreground/60 font-body text-sm tracking-widest pt-2">
-              The nun claimed your soul...
-            </p>
-            <div className="space-y-3 pt-8">
+
+            {/* D E A D - letter by letter with blood drip effect */}
+            <div className="flex justify-center gap-2 md:gap-4">
+              {deadLetters.map((letter, i) => (
+                <div
+                  key={i}
+                  className="relative"
+                  style={{
+                    opacity: i < letterReveal ? 1 : 0,
+                    transform: i < letterReveal ? 'translateY(0) scale(1)' : 'translateY(-30px) scale(1.3)',
+                    transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  }}
+                >
+                  <span
+                    className="font-horror text-7xl md:text-[10rem] inline-block"
+                    style={{
+                      color: 'hsl(0, 85%, 30%)',
+                      textShadow: `0 0 40px rgba(200, 0, 0, 0.9),
+                                   0 0 80px rgba(150, 0, 0, 0.5),
+                                   0 0 120px rgba(100, 0, 0, 0.3),
+                                   0 4px 20px rgba(0,0,0,0.95)`,
+                      animation: i < letterReveal ? 'death-text-pulse 2s ease-in-out infinite' : 'none',
+                      animationDelay: `${i * 0.2}s`,
+                    }}
+                  >
+                    {letter}
+                  </span>
+                  {/* Blood drip under each letter */}
+                  {i < letterReveal && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 w-1 rounded-full"
+                      style={{
+                        top: '85%',
+                        height: `${20 + Math.random() * 30}px`,
+                        background: 'linear-gradient(to bottom, hsl(0, 80%, 30%), transparent)',
+                        animation: 'blood-drip 2s ease-in forwards',
+                        animationDelay: `${0.3 + i * 0.2}s`,
+                        opacity: 0.7,
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Subtitle */}
+            <div className="space-y-2 pt-2">
+              <p className="text-muted-foreground/40 font-body text-xs tracking-[0.5em] uppercase"
+                 style={{ animation: 'flicker-text 4s infinite 1s' }}>
+                Darkness has claimed another wanderer
+              </p>
+              <p className="font-horror text-sm md:text-base tracking-widest pt-1"
+                 style={{
+                   color: 'hsl(0, 50%, 40%)',
+                   textShadow: '0 0 15px rgba(200, 0, 0, 0.4)',
+                 }}>
+                The nun feasts on your eternal fear...
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="space-y-3 pt-10">
               <button
                 onClick={restart}
-                className="block w-56 mx-auto py-3 border-2 border-red-800/60 bg-red-950/30
-                           text-red-300 rounded transition-all hover:bg-red-900/50 hover:border-red-600
-                           hover:text-red-200 font-horror text-xl tracking-wider"
+                className="group block w-64 mx-auto py-4 border-2 rounded-lg transition-all duration-300
+                           font-horror text-2xl tracking-[0.3em] relative overflow-hidden"
+                style={{
+                  borderColor: 'hsl(0, 60%, 25%)',
+                  backgroundColor: 'hsla(0, 80%, 15%, 0.4)',
+                  color: 'hsl(0, 50%, 60%)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'hsl(0, 70%, 40%)';
+                  e.currentTarget.style.backgroundColor = 'hsla(0, 80%, 20%, 0.6)';
+                  e.currentTarget.style.boxShadow = '0 0 30px rgba(200, 0, 0, 0.3), inset 0 0 20px rgba(200, 0, 0, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'hsl(0, 60%, 25%)';
+                  e.currentTarget.style.backgroundColor = 'hsla(0, 80%, 15%, 0.4)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
               >
-                FACE IT AGAIN
+                <span className="relative z-10">FACE IT AGAIN</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent
+                                translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
               </button>
               <button
                 onClick={() => setPhase('menu')}
-                className="block w-56 mx-auto py-2.5 bg-transparent text-muted-foreground/50
-                           rounded transition-colors hover:text-muted-foreground font-body text-sm"
+                className="block w-64 mx-auto py-2.5 bg-transparent text-muted-foreground/40
+                           rounded transition-colors hover:text-muted-foreground/70 font-body text-xs tracking-widest"
               >
-                Escape to Menu
+                flee to safety
               </button>
             </div>
           </div>
