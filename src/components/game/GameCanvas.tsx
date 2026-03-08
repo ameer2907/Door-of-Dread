@@ -23,7 +23,7 @@ export default function GameCanvas() { // v3
         camera={{ fov: 70, near: 0.1, far: 50, position: [0, 1.7, 3] }}
         gl={{ antialias: true, toneMapping: 3, toneMappingExposure: 1.9 }}
       >
-        <fog attach="fog" args={[config.fogColor, config.fogNear, config.fogFar]} />
+        <fogExp2 attach="fog" args={[config.fogColor, 0.04 + (1 - config.fogFar / 25) * 0.06]} />
 
         {/* Current room */}
         <Room3D
@@ -36,13 +36,26 @@ export default function GameCanvas() { // v3
           darkness={roomDarkness}
         />
 
-        {/* Next room visible through the portal door */}
+        {/* Next room visible through the portal door — with god ray light cone */}
         {showNextRoom && (
-          <NextRoomPortal
-            nextRoomIndex={portal.nextRoomIndex}
-            doorIndex={portal.doorIndex}
-            portalPhase={portal.phase}
-          />
+          <>
+            <NextRoomPortal
+              nextRoomIndex={portal.nextRoomIndex}
+              doorIndex={portal.doorIndex}
+              portalPhase={portal.phase}
+            />
+            {/* God ray volumetric light through doorway */}
+            <spotLight
+              position={[DOOR_POSITIONS[portal.doorIndex][0], 3.5, DOOR_POSITIONS[portal.doorIndex][2] - 1]}
+              target-position={[DOOR_POSITIONS[portal.doorIndex][0], 0, DOOR_POSITIONS[portal.doorIndex][2] + 2]}
+              angle={0.4}
+              penumbra={0.8}
+              intensity={portal.phase === 'walkThrough' ? 3 : 1.5}
+              color="#ffddaa"
+              distance={10}
+              castShadow
+            />
+          </>
         )}
 
         <Ghost3D

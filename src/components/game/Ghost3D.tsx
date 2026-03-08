@@ -194,6 +194,8 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
   const hasSpawned = useRef(false);
   const spawnPos = useRef(new THREE.Vector3());
   const walkBob = useRef(0);
+  const twitchTimer = useRef(0);
+  const twitchOffset = useRef({ x: 0, y: 0, z: 0 });
 
   // Calculate spawn position based on spawn type
   const getSpawnPosition = (): [number, number, number] => {
@@ -283,6 +285,22 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
     spawnTime.current += delta;
     clothOffset.current += delta * 3;
     walkBob.current += delta * 4;
+    twitchTimer.current += delta;
+
+    // === IDLE TWITCH — involuntary, unsettling micro-movements ===
+    if (twitchTimer.current > 0.8 + Math.random() * 1.5) {
+      twitchTimer.current = 0;
+      const intensity = state === 'watching' ? 0.06 : state === 'approaching' ? 0.03 : 0.01;
+      twitchOffset.current = {
+        x: (Math.random() - 0.5) * intensity,
+        y: (Math.random() - 0.5) * intensity * 0.5,
+        z: (Math.random() - 0.5) * intensity * 0.3,
+      };
+    }
+    // Decay twitches
+    twitchOffset.current.x *= 0.92;
+    twitchOffset.current.y *= 0.92;
+    twitchOffset.current.z *= 0.92;
 
     // Fade in - slower for approaching to build silhouette effect
     const fadeSpeed = state === 'watching' ? 1.5 : state === 'approaching' ? 2.0 : 2.5;
@@ -352,6 +370,12 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spa
       groupRef.current.position.lerpVectors(spawnPos.current, targetVec, easeOut);
       groupRef.current.position.y = floatY;
       groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
+    }
+
+    // Apply twitch offset to head area (rotation-based)
+    if (groupRef.current) {
+      groupRef.current.rotation.z += twitchOffset.current.x;
+      groupRef.current.rotation.x += twitchOffset.current.y * 0.5;
     }
   });
 

@@ -196,6 +196,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     st.openingDoor = index;
     audioManager.playHorrorDoorOpen();
+    audioManager.setAudioMixState('discovery');
+    audioManager.playShepardTone(5);
     update();
 
     setTimeout(() => {
@@ -285,6 +287,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
         audioManager.playCorrectDoor();
         audioManager.playTransitionWind();
+        audioManager.playGodRayHum();
+        audioManager.stopShepardTone();
+        audioManager.setAudioMixState('safe');
         st2.isTransitioning = true;
         st2.portal = {
           phase: 'doorOpening',
@@ -333,6 +338,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       } else {
         // === WRONG DOOR: CINEMATIC HORROR SEQUENCE ===
         audioManager.playWrongDoor();
+        audioManager.stopShepardTone();
+        audioManager.setAudioMixState('safe');
         const roomCfg = ROOM_CONFIGS[st2.currentRoom];
         st2.wrongCount++;
         st2.fear = Math.min(100, st2.fear + 15 * roomCfg.fearMultiplier);
@@ -499,6 +506,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     audioManager.playGhostScream();
     audioManager.playChaseMusic();
     audioManager.startHeartbeat(300);
+    audioManager.setAudioMixState('chase');
     update();
 
     // If player doesn't escape in 8 seconds, game over
