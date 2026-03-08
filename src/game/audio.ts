@@ -791,11 +791,126 @@ class AudioManager {
     this.playTone(330, 1.5, 'sine', 0.06);
   }
 
+  // Menu ambience - looping wind, whispers, and sparse piano
+  private menuAmbienceLayers: { source: AudioBufferSourceNode | OscillatorNode; gain: GainNode }[] = [];
+  private menuAmbienceTimers: ReturnType<typeof setTimeout>[] = [];
+
+  playMenuAmbience() {
+    this.stopMenuAmbience();
+    if (!this.ctx || !this.masterGain) return;
+
+    // Continuous wind layer
+    const windLen = this.ctx.sampleRate * 6;
+    const windBuf = this.ctx.createBuffer(1, windLen, this.ctx.sampleRate);
+    const wd = windBuf.getChannelData(0);
+    for (let i = 0; i < windLen; i++) wd[i] = (Math.random() * 2 - 1);
+    const windSrc = this.ctx.createBufferSource();
+    windSrc.buffer = windBuf;
+    windSrc.loop = true;
+    const windFilt = this.ctx.createBiquadFilter();
+    windFilt.type = 'lowpass';
+    windFilt.frequency.value = 180;
+    const lfo = this.ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.15;
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = 80;
+    lfo.connect(lfoGain);
+    lfoGain.connect(windFilt.frequency);
+    lfo.start();
+    const windG = this.ctx.createGain();
+    windG.gain.value = 0.04;
+    windSrc.connect(windFilt);
+    windFilt.connect(windG);
+    windG.connect(this.masterGain);
+    windSrc.start();
+    this.menuAmbienceLayers.push({ source: windSrc, gain: windG });
+
+    // Deep drone
+    const drone = this.ctx.createOscillator();
+    drone.type = 'sine';
+    drone.frequency.value = 35;
+    const droneG = this.ctx.createGain();
+    droneG.gain.value = 0.04;
+    drone.connect(droneG);
+    droneG.connect(this.masterGain);
+    drone.start();
+    this.menuAmbienceLayers.push({ source: drone, gain: droneG });
+
+    // Periodic whispers
+    const scheduleWhisper = () => {
+      const delay = 5000 + Math.random() * 8000;
+      const timer = setTimeout(() => {
+        if (!this.ctx || !this.masterGain) return;
+        const wLen = this.ctx.sampleRate * 1.2;
+        const wBuf = this.ctx.createBuffer(1, wLen, this.ctx.sampleRate);
+        const d = wBuf.getChannelData(0);
+        for (let i = 0; i < wLen; i++) {
+          d[i] = (Math.random() * 2 - 1) * Math.sin(i / wLen * Math.PI);
+        }
+        const wSrc = this.ctx.createBufferSource();
+        wSrc.buffer = wBuf;
+        const f = this.ctx.createBiquadFilter();
+        f.type = 'bandpass';
+        f.frequency.value = 1200 + Math.random() * 600;
+        f.Q.value = 3;
+        const g = this.ctx.createGain();
+        g.gain.value = 0.015;
+        wSrc.connect(f);
+        f.connect(g);
+        g.connect(this.masterGain!);
+        wSrc.start();
+        scheduleWhisper();
+      }, delay);
+      this.menuAmbienceTimers.push(timer);
+    };
+    scheduleWhisper();
+
+    // Sparse eerie piano notes
+    const schedulePiano = () => {
+      const delay = 4000 + Math.random() * 6000;
+      const timer = setTimeout(() => {
+        if (!this.ctx || !this.masterGain) return;
+        const notes = [110, 130.81, 146.83, 164.81, 196];
+        const freq = notes[Math.floor(Math.random() * notes.length)];
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        osc.detune.value = (Math.random() - 0.5) * 10;
+        const g = this.ctx.createGain();
+        g.gain.value = 0.03;
+        g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3);
+        const dly = this.ctx.createDelay();
+        dly.delayTime.value = 0.5;
+        const dlyG = this.ctx.createGain();
+        dlyG.gain.value = 0.015;
+        osc.connect(g);
+        g.connect(this.masterGain!);
+        g.connect(dly);
+        dly.connect(dlyG);
+        dlyG.connect(this.masterGain!);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 3.5);
+        schedulePiano();
+      }, delay);
+      this.menuAmbienceTimers.push(timer);
+    };
+    schedulePiano();
+  }
+
+  stopMenuAmbience() {
+    this.menuAmbienceLayers.forEach(l => { try { l.source.stop(); } catch {} });
+    this.menuAmbienceLayers = [];
+    this.menuAmbienceTimers.forEach(t => clearTimeout(t));
+    this.menuAmbienceTimers = [];
+  }
+
   stopAll() {
     this.stopAmbient();
     this.stopHeartbeat();
     this.stopMusic();
     this.stopRoomAmbience();
+    this.stopMenuAmbience();
   }
 }
 
