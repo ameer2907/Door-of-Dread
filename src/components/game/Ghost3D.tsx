@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { GhostState } from '@/game/types';
+import { GhostState, GhostSpawnType } from '@/game/types';
 import { DOOR_POSITIONS } from '@/game/rooms';
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
   state: GhostState;
   roomIndex: number;
   spawnDoorIndex?: number | null;
+  spawnType?: GhostSpawnType;
+  approachProgress?: number;
 }
 
 function GhostBody({ opacity }: { opacity: number }) {
@@ -48,6 +50,7 @@ function GhostCloth({ opacity, clothOffset }: { opacity: number; clothOffset: nu
 
 function GhostHead({ opacity, state }: { opacity: number; state: GhostState }) {
   const isAttacking = state === 'attack';
+  const isApproaching = state === 'approaching' || state === 'close';
   
   return (
     <group>
@@ -55,8 +58,8 @@ function GhostHead({ opacity, state }: { opacity: number; state: GhostState }) {
         <sphereGeometry args={[0.28, 16, 16]} />
         <meshStandardMaterial
           color="#c8ccd8"
-          emissive="#0a0a20"
-          emissiveIntensity={0.5}
+          emissive={isApproaching ? '#1a0020' : '#0a0a20'}
+          emissiveIntensity={isApproaching ? 0.8 : 0.5}
           roughness={0.85}
           transparent
           opacity={opacity}
@@ -77,11 +80,11 @@ function GhostHead({ opacity, state }: { opacity: number; state: GhostState }) {
             <meshStandardMaterial color="#000000" />
           </mesh>
           <mesh position={[0, 0, 0.015]}>
-            <sphereGeometry args={[0.022, 8, 8]} />
+            <sphereGeometry args={[isAttacking ? 0.028 : 0.022, 8, 8]} />
             <meshStandardMaterial
-              color={isAttacking ? '#ffff00' : '#ff4400'}
-              emissive={isAttacking ? '#ffff00' : '#ff2200'}
-              emissiveIntensity={isAttacking ? 12 : 4}
+              color={isAttacking ? '#ffff00' : isApproaching ? '#ff6600' : '#ff4400'}
+              emissive={isAttacking ? '#ffff00' : isApproaching ? '#ff4400' : '#ff2200'}
+              emissiveIntensity={isAttacking ? 15 : isApproaching ? 8 : 4}
             />
           </mesh>
         </group>
@@ -95,7 +98,7 @@ function GhostHead({ opacity, state }: { opacity: number; state: GhostState }) {
       ))}
 
       <mesh position={[0, 2.78, 0.2]}>
-        <sphereGeometry args={[0.08, 10, 8]} />
+        <sphereGeometry args={[isAttacking ? 0.1 : 0.08, 10, 8]} />
         <meshStandardMaterial color="#000000" />
       </mesh>
       {[-0.04, -0.015, 0.015, 0.04].map((x, i) => (
@@ -157,26 +160,31 @@ function GhostHands({ state, opacity }: { state: GhostState; opacity: number }) 
       </>
     );
   }
-  if (state === 'close') {
+  if (state === 'approaching' || state === 'close') {
+    // Arms slightly raised while approaching
     return (
-      <group position={[0.4, 1.9, 0.5]}>
-        <mesh>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshStandardMaterial color="#c0c4d0" transparent opacity={opacity} />
-        </mesh>
-        {[0, 1, 2].map((f) => (
-          <mesh key={f} position={[(f - 1) * 0.025, 0.08, 0.01]} rotation={[0.3, 0, 0]}>
-            <cylinderGeometry args={[0.007, 0.005, 0.08]} />
-            <meshStandardMaterial color="#c0c4d0" transparent opacity={opacity} />
-          </mesh>
+      <>
+        {[-0.4, 0.4].map((x, i) => (
+          <group key={`hand-${i}`} position={[x, 1.6 + (state === 'close' ? 0.3 : 0), 0.3]}>
+            <mesh>
+              <sphereGeometry args={[0.06, 8, 8]} />
+              <meshStandardMaterial color="#c0c4d0" transparent opacity={opacity} />
+            </mesh>
+            {[0, 1, 2, 3].map((f) => (
+              <mesh key={f} position={[(f - 1.5) * 0.022, 0.08, 0.01]} rotation={[0.2, 0, (f - 1.5) * 0.08]}>
+                <cylinderGeometry args={[0.007, 0.005, 0.08]} />
+                <meshStandardMaterial color="#c0c4d0" transparent opacity={opacity} />
+              </mesh>
+            ))}
+          </group>
         ))}
-      </group>
+      </>
     );
   }
   return null;
 }
 
-export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex }: Props) {
+export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex, spawnType = 'doorway', approachProgress = 0 }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const floatOffset = useRef(0);
@@ -185,18 +193,52 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex }: P
   const spawnTime = useRef(0);
   const hasSpawned = useRef(false);
   const spawnPos = useRef(new THREE.Vector3());
+  const walkBob = useRef(0);
 
-  // Calculate spawn position from door
-  const getDoorSpawnPosition = (): [number, number, number] => {
+  // Calculate spawn position based on spawn type
+  const getSpawnPosition = (): [number, number, number] => {
+    if (spawnType === 'behind') {
+      // Behind the player
+      return [
+        camera.position.x + (Math.random() - 0.5) * 2,
+        0,
+        camera.position.z + 3
+      ];
+    }
+    if (spawnType === 'corridor') {
+      // Far end of room in darkness
+      return [0, 0, -4.8];
+    }
+    if (spawnType === 'shadows') {
+      // Random dark corner
+      const corners: [number, number, number][] = [[-4, 0, -4], [4, 0, -4], [-4, 0, 4], [4, 0, 4]];
+      return corners[Math.floor(Math.random() * corners.length)];
+    }
+    // Default: doorway
     if (spawnDoorIndex !== null && spawnDoorIndex !== undefined && DOOR_POSITIONS[spawnDoorIndex]) {
       const doorPos = DOOR_POSITIONS[spawnDoorIndex];
-      // Start behind the door (further back on Z), at door's X position
       return [doorPos[0], 0, doorPos[2] - 1.5];
     }
     return [0, 0, -4.5];
   };
 
   const getTargetPosition = (): [number, number, number] => {
+    // For approaching state, move toward the player
+    if (state === 'approaching') {
+      const dx = camera.position.x - (groupRef.current?.position.x ?? 0);
+      const dz = camera.position.z - (groupRef.current?.position.z ?? 0);
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > 2) {
+        // Move toward player but stop 2 units away
+        const ratio = (dist - 2) / dist;
+        return [
+          (groupRef.current?.position.x ?? 0) + dx * ratio * 0.3,
+          0,
+          (groupRef.current?.position.z ?? 0) + dz * ratio * 0.3,
+        ];
+      }
+    }
+
     if (spawnDoorIndex !== null && spawnDoorIndex !== undefined && DOOR_POSITIONS[spawnDoorIndex]) {
       const doorPos = DOOR_POSITIONS[spawnDoorIndex];
       switch (state) {
@@ -206,7 +248,6 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex }: P
         default: return [doorPos[0], 0, doorPos[2] - 1.5];
       }
     }
-    // Fallback if no door index
     switch (state) {
       case 'watching': return [0, 0, -3];
       case 'close': return [0, 0, 0.5];
@@ -223,46 +264,70 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex }: P
       return;
     }
 
-    // Initialize spawn position on first visible frame
     if (!hasSpawned.current) {
       hasSpawned.current = true;
-      const sp = getDoorSpawnPosition();
+      const sp = getSpawnPosition();
       spawnPos.current.set(sp[0], sp[1], sp[2]);
       groupRef.current.position.set(sp[0], sp[1], sp[2]);
     }
 
     spawnTime.current += delta;
-    fadeIn.current = Math.min(fadeIn.current + delta * 2.5, 1);
-    floatOffset.current += delta * 1.5;
     clothOffset.current += delta * 3;
+    walkBob.current += delta * 4;
 
-    // Eerie float
-    const floatY = Math.sin(floatOffset.current) * 0.1;
+    // Fade in - slower for approaching to build silhouette effect
+    const fadeSpeed = state === 'watching' ? 1.5 : state === 'approaching' ? 2.0 : 2.5;
+    fadeIn.current = Math.min(fadeIn.current + delta * fadeSpeed, 1);
+
+    // Walk bob for approaching ghost
+    const isWalking = state === 'approaching' || state === 'close';
+    const walkY = isWalking ? Math.abs(Math.sin(walkBob.current)) * 0.06 : 0;
+    const floatY = isWalking ? walkY : Math.sin(floatOffset.current) * 0.1;
+    floatOffset.current += delta * 1.5;
 
     const target = getTargetPosition();
     const targetVec = new THREE.Vector3(target[0], target[1], target[2]);
 
     if (state === 'attack') {
-      // Phase 1: Emerge from door (first ~0.8s), then rush toward player
-      if (spawnTime.current < 0.8) {
-        // Slowly step through the doorway
-        const emergeProgress = Math.min(spawnTime.current / 0.8, 1);
+      // Phase 1: Emerge from current position, then RUSH
+      if (spawnTime.current < 0.5) {
+        const emergeProgress = Math.min(spawnTime.current / 0.5, 1);
         const easeOut = 1 - Math.pow(1 - emergeProgress, 2);
         groupRef.current.position.lerpVectors(spawnPos.current, targetVec, easeOut);
-        groupRef.current.position.y = floatY;
       } else {
-        // Rush toward the player
+        // Lunge at player at high speed
         const dir = new THREE.Vector3()
           .subVectors(camera.position, groupRef.current.position)
           .normalize();
         dir.y = 0;
-        groupRef.current.position.addScaledVector(dir, delta * 5);
-        groupRef.current.position.y = floatY;
+        groupRef.current.position.addScaledVector(dir, delta * 8); // faster lunge
       }
+      groupRef.current.position.y = floatY;
       groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
-    } else if (state === 'close' || state === 'watching') {
-      // Smoothly emerge from door toward target
-      const emergeSpeed = state === 'close' ? 1.5 : 0.8;
+    } else if (state === 'approaching') {
+      // Slow deliberate walk toward player
+      const dir = new THREE.Vector3()
+        .subVectors(new THREE.Vector3(camera.position.x, 0, camera.position.z), groupRef.current.position)
+        .normalize();
+      dir.y = 0;
+      const speed = 0.8 + spawnTime.current * 0.15; // slowly accelerates
+      groupRef.current.position.addScaledVector(dir, delta * speed);
+      groupRef.current.position.y = floatY;
+      // Subtle lateral sway while walking
+      groupRef.current.position.x += Math.sin(walkBob.current * 0.7) * 0.003;
+      groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
+    } else if (state === 'close') {
+      // Very close - slow menacing approach
+      const dir = new THREE.Vector3()
+        .subVectors(new THREE.Vector3(camera.position.x, 0, camera.position.z), groupRef.current.position)
+        .normalize();
+      dir.y = 0;
+      groupRef.current.position.addScaledVector(dir, delta * 0.5);
+      groupRef.current.position.y = floatY;
+      groupRef.current.lookAt(camera.position.x, groupRef.current.position.y + 1.8, camera.position.z);
+    } else if (state === 'watching') {
+      // Slowly emerge from spawn point
+      const emergeSpeed = 0.8;
       const emergeProgress = Math.min(spawnTime.current * emergeSpeed / 1.5, 1);
       const easeOut = 1 - Math.pow(1 - emergeProgress, 3);
       groupRef.current.position.lerpVectors(spawnPos.current, targetVec, easeOut);
@@ -273,8 +338,12 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex }: P
 
   if (!visible) return null;
 
-  const startPos = getDoorSpawnPosition();
-  const opacity = Math.min(fadeIn.current, state === 'watching' ? 0.55 : 0.95);
+  const startPos = getSpawnPosition();
+  const maxOpacity = state === 'watching' ? 0.55 : state === 'approaching' ? 0.8 : 0.95;
+  const opacity = Math.min(fadeIn.current, maxOpacity);
+
+  // Eye glow intensity based on state
+  const eyeGlow = state === 'attack' ? 1.2 : state === 'close' ? 0.8 : state === 'approaching' ? 0.5 : 0.2;
 
   return (
     <group ref={groupRef} position={startPos}>
@@ -284,22 +353,32 @@ export default function Ghost3D({ visible, state, roomIndex, spawnDoorIndex }: P
       <GhostVeil opacity={opacity} />
       <GhostHands state={state} opacity={opacity} />
 
+      {/* Dynamic lighting based on ghost state */}
       <pointLight
         position={[0, 3.0, 0.4]}
-        color={state === 'attack' ? '#ffff00' : '#ff2200'}
-        intensity={state === 'attack' ? 0.8 : 0.2}
-        distance={4}
+        color={state === 'attack' ? '#ffff00' : state === 'approaching' ? '#ff4400' : '#ff2200'}
+        intensity={state === 'attack' ? 1.2 : state === 'approaching' ? 0.5 : 0.2}
+        distance={state === 'attack' ? 6 : 4}
       />
       <pointLight
         position={[0, 2.0, 0.5]}
         color={state === 'attack' ? '#ff0000' : '#1a1a66'}
-        intensity={state === 'attack' ? 0.5 : 0.1}
+        intensity={state === 'attack' ? 0.8 : state === 'approaching' ? 0.3 : 0.1}
         distance={5}
       />
+      {/* Eerie back-light silhouette when watching/approaching */}
+      {(state === 'watching' || state === 'approaching') && (
+        <pointLight
+          position={[0, 2.5, -0.8]}
+          color="#220044"
+          intensity={0.4}
+          distance={3}
+        />
+      )}
       <pointLight
         position={[0, 2.5, 0.3]}
         color="#221100"
-        intensity={0.2}
+        intensity={eyeGlow}
         distance={2}
       />
     </group>

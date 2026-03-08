@@ -47,7 +47,14 @@ export default function GameCanvas() {
           state={ghostState}
           roomIndex={currentRoom}
           spawnDoorIndex={openingDoor}
+          spawnType={ghostSpawnType}
+          approachProgress={ghostApproachProgress}
         />
+
+        {/* Room darkness overlay light - dims during ghost encounters */}
+        {roomDarkness > 0 && (
+          <ambientLight color="#000000" intensity={-roomDarkness * 2} />
+        )}
 
         <PlayerController />
       </Canvas>
