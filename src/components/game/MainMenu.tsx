@@ -242,6 +242,8 @@ export default function MainMenu() {
   const [showControls, setShowControls] = useState(false);
   const [entering, setEntering] = useState(false);
   const audioStarted = useRef(false);
+  const hoverTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hoverStart = useRef(0);
 
   useEffect(() => {
     if (phase !== 'menu') return;
