@@ -287,6 +287,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
         audioManager.playCorrectDoor();
         audioManager.playTransitionWind();
+        audioManager.playGodRayHum();
+        audioManager.stopShepardTone();
+        audioManager.setAudioMixState('safe');
         st2.isTransitioning = true;
         st2.portal = {
           phase: 'doorOpening',
