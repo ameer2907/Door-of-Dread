@@ -196,6 +196,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     st.openingDoor = index;
     audioManager.playHorrorDoorOpen();
+    audioManager.setAudioMixState('discovery');
+    audioManager.playShepardTone(5);
     update();
 
     setTimeout(() => {
